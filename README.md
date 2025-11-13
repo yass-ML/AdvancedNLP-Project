@@ -87,12 +87,17 @@ This project aims to:
 
 ## 👥 Contributors
 
-This project is developed as part of an Advanced NLP course group project.
+* Cédric Damais
+* Léon Ayral
+* Amine Mike El-Maalouf
+* Yacine Benihaddadene
+
 
 ---
 
 ## 📄 License
 
-This project is provided for educational and research purposes.
+This project is developed as part of the Advanced NLP course in the SCIA Major at EPITA - École pour l'informatique et les techniques avancées.
+It is provided for educational and research purposes.
 
 
