@@ -20,6 +20,10 @@ This project explores the **few-shot dilemma** for smaller language models (1Bâ€
 
 ---
 
+## Requirements
+
+- Ollama
+
 ## ðŸ§ª Methodology
 
 ### Models
