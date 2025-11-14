@@ -89,7 +89,7 @@ This project aims to:
 
 * Cédric Damais
 * Léon Ayral
-* Amine Mike El-Maalouf
+* Amine Mike El Maalouf
 * Yacine Benihaddadene
 
 
