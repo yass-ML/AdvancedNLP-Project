@@ -85,7 +85,7 @@ This project aims to:
 
 ---
 
-## 👥 Contributors
+## 👥 Authors
 
 * Cédric Damais
 * Léon Ayral
