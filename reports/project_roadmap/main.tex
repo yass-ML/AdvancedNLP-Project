@@ -88,12 +88,13 @@ We utilize datasets like Banking77 (Intent) or CoNLL (NER).
 \end{itemize}
 
 \subsection{Phase 2: Selector Implementation}
-We implement three selection strategies:
+We implement the following selection strategies:
 \begin{itemize}
     \item \textbf{Random:} \texttt{random.sample()} from the train set.
     \item \textbf{Semantic:} Encode queries using \texttt{all-MiniLM-L6-v2} to retrieve top-$K$ neighbors.
     \item \textbf{Lexical:} TF-IDF or BM25 to find keyword-similar examples.
 \end{itemize}
+We will explore other selection methods, among them cross-encoders.
 
 \subsection{Phase 3: The Selector Experiment}
 In this phase, we isolate the impact of the example selection mechanism. To ensure consistency, we fix the model architecture to a static baseline (e.g., \texttt{Phi-3-mini}) and vary only the retrieval strategy. We evaluate three primary approaches:
@@ -111,6 +112,20 @@ Building on the results from Phase 3, we fix the selection strategy to the highe
 This final experiment conducts a sensitivity analysis by isolating the number of examples ($K$) as the sole independent variable. We will fix the optimal model (from Phase 4) and the most effective selection strategy (from Phase 3) to strictly evaluate the impact of context volume.
 
 \textbf{Objective:} We will incrementally increase the number of retrieved examples (e.g., $K \in \{1, 3, 5, 10, 15, 20, \dots\}$) until the context window is filled. The goal is to empirically locate the ``over-prompting'' threshold and identify the \textbf{sweet spot}—the optimal value of $K$ where the model achieves maximum predictive performance before accuracy plateaus or degrades due to noise.
+
+
+\subsection{Phase 6: Evaluation and Analysis}
+
+The final phase focuses on synthesizing the experimental data to derive actionable insights regarding the efficiency of SLMs. We will conduct a multi-dimensional analysis to solve the optimization problem defined in our objective.
+
+\paragraph{Data Visualization}
+We will generate heatmaps illustrating the relationship between \textbf{Accuracy} and \textbf{Shot Count} ($K$) for each model architecture. These visualizations will aim to visually highlight the "saturation regions" where adding examples no longer yields performance gains.
+
+\paragraph{Cost vs. Performance Analysis}
+To address the constraints of the real-world Fintech use case, we will map the \textbf{Pareto frontier}. By plotting Model Accuracy ($y$-axis) against Context Length and Inference Cost ($x$-axis), we aim to identify the optimal operating point that maximizes performance per token.
+
+\paragraph{Threshold Determination}
+Finally, we will tabulate the specific ``Over-prompting'' threshold for each model size. This analysis will determine the exact point where the marginal utility of adding an example becomes negative, while explicitly accounting for the hard constraints of the SLM's context window (e.g., 2048 or 4096 tokens).
 
 \bibliographystyle{plainnat}
 \bibliography{custom}
