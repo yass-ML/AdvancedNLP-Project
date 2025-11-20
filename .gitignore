@@ -1,0 +1,65 @@
+# ------------------------------------------------------
+# 1. LaTeX Build Artifacts
+# ------------------------------------------------------
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.lof
+*.lot
+*.dvi
+
+# ------------------------------------------------------
+# 2. Python & Environment
+# ------------------------------------------------------
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments (Common names)
+venv/
+.venv/
+env/
+.env
+
+# ------------------------------------------------------
+# 3. Data Science & Notebooks
+# ------------------------------------------------------
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# ------------------------------------------------------
+# 4. Large Data & Model Weights (CRITICAL for NLP)
+# ------------------------------------------------------
+# Do not commit huge datasets or model weights
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.h5
+*.onnx
+
+# Large data files (Modify if you have small config CSVs you WANT to track)
+*.csv
+*.jsonl
+*.parquet
+*.pkl
+*.pickle
+
+# ------------------------------------------------------
+# 5. IDE & OS System Files
+# ------------------------------------------------------
+# VS Code settings (personal preferences)
+.vscode/
+
+# Mac OS junk
+.DS_Store
+
+# Windows junk
+Thumbs.db

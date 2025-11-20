@@ -1,0 +1,133 @@
+\documentclass{article}
+
+% ---------------------------------------------------------
+% 1. SETUP & PACKAGES
+% ---------------------------------------------------------
+\PassOptionsToPackage{numbers, compress}{natbib}
+
+% [preprint] shows your names. Change to [final] for the final version.
+\usepackage[preprint]{neurips_2024}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{graphicx}       % for images
+\usepackage{enumitem}       % for cleaner lists
+
+% ---------------------------------------------------------
+% 2. TITLE & AUTHORS
+% ---------------------------------------------------------
+\title{The Few-shot Dilemma: Over-prompting Large Language Models in Resource-Constrained Environments}
+
+\author{%
+  Amine Mike El Maalouf \\
+  \texttt{amine.el-maalouf@epita.fr} \\
+  \And
+  Cedric Damais \\
+  \texttt{cedric.damais@epita.fr} \\
+  \And
+  Yacine Benihaddadene \\
+  \texttt{yacine.benihaddadene@epita.fr} \\
+  \And
+  Leon Ayral \\
+  \texttt{leon.ayral@epita.fr} \\
+}
+
+\begin{document}
+
+\maketitle
+
+% ---------------------------------------------------------
+% 3. ABSTRACT
+% ---------------------------------------------------------
+
+\begin{abstract}
+Large Language Models (LLMs) have revolutionized NLP through In-Context Learning (ICL). However, a common misconception is ``the more examples, the better.'' Recent research suggests a ``Few-shot Dilemma'': increasing the number of shots can paradoxically lead to diminishing returns or performance degradation. \citep{fewshot2025}. Our project investigates this phenomenon specifically within the realm of Small Language Models (SLMs), such as Llama 3.2 and Phi-3. Unlike massive models, SLMs are constrained by smaller context windows. We aim to evaluate various example selection strategies ---ranging from semantic retrieval to lexical matching--- and systematically vary the number of examples ($K$) to determine the optimal context volume. Our goal is to determine if ``smarter'' example selection strategies can delay the onset of the few-shot dilemma compared to random selection, and identify the threshold where performance degradation begins, optimizing the trade-off between accuracy and inference cost.
+\end{abstract}
+
+
+% ---------------------------------------------------------
+% 4. SECTIONS
+% ---------------------------------------------------------
+
+\section{Introduction: The Real-life Use Case}
+Consider a privacy-focused Fintech startup building an on-premise ``Intent Classification'' system to route customer support tickets. Due to data privacy laws (GDPR) and inference costs, they cannot send data to OpenAI/GPT-4; they must run a small model (like Llama 3.2 3B) locally on limited hardware. The engineering team faces a critical challenge: \textbf{How do we prompt this small model to get the best accuracy?}
+
+\begin{itemize}
+    \item If they provide 0 examples, accuracy is too low.
+    \item If they provide 50 examples, they blow up the latency and context window, and the model might get confused (``lost in the middle'' \citep{lostInTheMiddle2023}).
+\end{itemize}
+
+Which examples should they pick from their database of 10,000 tickets? The core challenge is solving the optimization problem between Accuracy, Inference Cost (token usage), and Selection Complexity. We aim to find a ``sweet spot'' ---the \textbf{Pareto frontier}--- where an SLM achieves near-supervised performance using the minimal number of optimally selected examples.
+
+\section{Background}
+Traditionally, NLP relied on Supervised Fine-Tuning (SFT). While SFT yields State-of-the-Art (SOTA) performance, it requires significant compute. The arrival of GPT-3 introduced ICL, allowing models to generalize from just $K$ examples.
+
+However, in the prompt engineering domain, standard scaling laws are contested.
+\begin{itemize}
+    \item \textbf{Prompt Sensitivity:} Research shows LLMs are highly sensitive to the order of examples \citep{order2025}.
+    \item \textbf{Lost in the Middle:} Liu et al. demonstrated that models often ignore information in the middle of long contexts, focusing only on the beginning and end. \citep{lostInTheMiddle2023}.
+    \item \textbf{The Over-prompting Dilemma:} Adding examples beyond a threshold introduces noise that confuses the attention mechanism.\citep{fewshot2025}
+\end{itemize}
+
+\textbf{Differentiation:} Most benchmarks focus on massive models. We strictly test SLMs ($<4$B parameters) and contrast naive Random Sampling against Retrieval Augmented Generation (RAG) techniques (K-NN via Embeddings and TF-IDF).
+
+\section{Methodology and Project Steps}
+We implement our pipeline using Python, HuggingFace Transformers, and Scikit-learn.
+
+\subsection{Phase 1: Infrastructure \& Baselines}
+We utilize datasets like Banking77 (Intent) or CoNLL (NER).
+\begin{itemize}
+    \item \textbf{Supervised Baseline (Ceiling):} Fine-tuned DistilBERT on the full training set.
+    \item \textbf{Zero-Shot Baseline (Floor):} Target LLMs with simple instructions ($K=0$).
+\end{itemize}
+
+\subsection{Phase 2: Selector Implementation}
+We implement the following selection strategies:
+\begin{itemize}
+    \item \textbf{Random:} \texttt{random.sample()} from the train set.
+    \item \textbf{Semantic:} Encode queries using \texttt{all-MiniLM-L6-v2} to retrieve top-$K$ neighbors.
+    \item \textbf{Lexical:} TF-IDF or BM25 to find keyword-similar examples.
+\end{itemize}
+We will explore other selection methods, among them cross-encoders.
+
+\subsection{Phase 3: The Selector Experiment}
+In this phase, we isolate the impact of the example selection mechanism. To ensure consistency, we fix the model architecture to a static baseline (e.g., \texttt{Phi-3-mini}) and vary only the retrieval strategy. We evaluate three primary approaches:
+\begin{itemize}
+    \item \textbf{Random Sampling:} The naive baseline.
+    \item \textbf{Semantic Retrieval:} Using dense embeddings to find contextually similar examples.
+    \item \textbf{Lexical Retrieval:} Using TF-IDF or BM25 to find keyword overlap.
+\end{itemize}
+We log performance across four key metrics: Accuracy, F1-Score, Inference Latency, and Total Token Count.
+
+\subsection{Phase 4: The Model Experiment}
+Building on the results from Phase 3, we fix the selection strategy to the highest-performing method and treat the model architecture as the independent variable. We benchmark a diverse set of open-weights Small Language Models (SLMs) to compare their in-context learning capabilities. The candidate models include \texttt{Phi-3-mini}, \texttt{Llama-3.2} (1B/3B), \texttt{Mistral}, and \texttt{Qwen} (specifically for mathematical reasoning tasks). The objective is to identify which architecture maximizes the score for a given optimized prompt structure.
+
+\subsection{Phase 5: The K-Shot Scaling Experiment}
+This final experiment conducts a sensitivity analysis by isolating the number of examples ($K$) as the sole independent variable. We will fix the optimal model (from Phase 4) and the most effective selection strategy (from Phase 3) to strictly evaluate the impact of context volume.
+
+\textbf{Objective:} We will incrementally increase the number of retrieved examples (e.g., $K \in \{1, 3, 5, 10, 15, 20, \dots\}$) until the context window is filled. The goal is to empirically locate the ``over-prompting'' threshold and identify the \textbf{sweet spot}—the optimal value of $K$ where the model achieves maximum predictive performance before accuracy plateaus or degrades due to noise.
+
+
+\subsection{Phase 6: Evaluation and Analysis}
+
+The final phase focuses on synthesizing the experimental data to derive actionable insights regarding the efficiency of SLMs. We will conduct a multi-dimensional analysis to solve the optimization problem defined in our objective.
+
+\paragraph{Data Visualization}
+We will generate heatmaps illustrating the relationship between \textbf{Accuracy} and \textbf{Shot Count} ($K$) for each model architecture. These visualizations will aim to visually highlight the "saturation regions" where adding examples no longer yields performance gains.
+
+\paragraph{Cost vs. Performance Analysis}
+To address the constraints of the real-world Fintech use case, we will map the \textbf{Pareto frontier}. By plotting Model Accuracy ($y$-axis) against Context Length and Inference Cost ($x$-axis), we aim to identify the optimal operating point that maximizes performance per token.
+
+\paragraph{Threshold Determination}
+Finally, we will tabulate the specific ``Over-prompting'' threshold for each model size. This analysis will determine the exact point where the marginal utility of adding an example becomes negative, while explicitly accounting for the hard constraints of the SLM's context window (e.g., 2048 or 4096 tokens).
+
+\bibliographystyle{plainnat}
+\bibliography{custom}
+
+\end{document}
