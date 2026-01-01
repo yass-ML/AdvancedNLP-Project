@@ -1,5 +1,6 @@
 
 import pandas as pd
+from sklearn.metrics import f1_score
 import requests
 import argparse
 import os
@@ -49,15 +50,20 @@ class MetricsPipeline:
         try:
             response = requests.post(self.base_url, json=payload)
             response.raise_for_status()
-            result = response.json().get("response", "").strip()
+            data = response.json()
+            result = data.get("response", "").strip()
             
-            for cat in self.categories:
+            # Extract token counts
+            prompt_eval_count = data.get("prompt_eval_count", 0)
+            eval_count = data.get("eval_count", 0)
+            
+            for cat in sorted(self.categories, key=len, reverse=True):
                 if cat.lower() in result.lower():
-                    return cat
-            return "Unknown"
+                    return cat, prompt_eval_count, eval_count
+            return "Unknown", prompt_eval_count, eval_count
         except requests.exceptions.RequestException as e:
             print(f"Error querying model: {e}")
-            return "Error"
+            return "Error", 0, 0
 
     def evaluate(self, sample_size=None):
         """Runs the pipeline on the dataset and computes accuracy."""
@@ -69,12 +75,23 @@ class MetricsPipeline:
         correct = 0
         total = 0
         
+        y_true = []
+        y_pred = []
+        total_prompt_tokens = 0
+        total_completion_tokens = 0
+        
         print("Starting classification...")
         for i, row in data.iterrows():
             problem = row['problem']
             true_label = row['type']
-
-            predicted_label = self.predict(problem)
+            
+            # Unpack prediction and tokens
+            predicted_label, prompt_tokens, completion_tokens = self.predict(problem)
+            
+            y_true.append(true_label)
+            y_pred.append(predicted_label)
+            total_prompt_tokens += prompt_tokens
+            total_completion_tokens += completion_tokens
             
             is_correct = predicted_label == true_label
             if is_correct:
@@ -84,8 +101,19 @@ class MetricsPipeline:
             print(f"[{i}] True: {true_label} | Pred: {predicted_label} | Correct: {is_correct}")
 
         accuracy = correct / total if total > 0 else 0
+        f1_weighted = f1_score(y_true, y_pred, average='weighted', zero_division=0)
+        f1_macro = f1_score(y_true, y_pred, average='macro', zero_division=0)
+        
+        avg_prompt_tokens = total_prompt_tokens / total if total > 0 else 0
+        avg_completion_tokens = total_completion_tokens / total if total > 0 else 0
+        
         print(f"Accuracy: {accuracy:.2%}")
-        return accuracy
+        print(f"F1 (Weighted): {f1_weighted:.4f}")
+        print(f"F1 (Macro): {f1_macro:.4f}")
+        print(f"Avg Prompt Tokens: {avg_prompt_tokens:.1f}")
+        print(f"Avg Completion Tokens: {avg_completion_tokens:.1f}")
+        
+        return accuracy, f1_weighted, f1_macro, avg_prompt_tokens, avg_completion_tokens
 
     def run(self, sample_size=5):
         self.load_data()
@@ -94,7 +122,7 @@ class MetricsPipeline:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate SLM on Math Classification")
     parser.add_argument("--model", type=str, default="llama3:8b", help="Ollama model name")
-    parser.add_argument("--dataset", type=str, default="../datasets/competition_math", help="Path to dataset")
+    parser.add_argument("--dataset", type=str, default="datasets/competition_math/data/", help="Path to dataset")
     parser.add_argument("--sample", type=int, default=5, help="Number of samples to evaluate")
     
     args = parser.parse_args()
