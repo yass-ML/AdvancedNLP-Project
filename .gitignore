@@ -46,7 +46,6 @@ env/
 *.onnx
 
 # Large data files (Modify if you have small config CSVs you WANT to track)
-*.csv
 *.jsonl
 *.parquet
 *.pkl
