@@ -63,3 +63,5 @@ env/
 
 # Windows junk
 Thumbs.db
+
+datasets/*
