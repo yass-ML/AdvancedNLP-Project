@@ -18,10 +18,11 @@ def ensure_model_exists(model_name):
         print(f"Error checking/pulling model {model_name}: {e}")
         raise
 
-def benchmark_models(models, sample_size, dataset_path):
+def benchmark_models(models, sample_size, dataset_path, selector_strategy, k_shots):
     results = []
     
     print(f"Starting benchmark on {len(models)} models with sample_size={sample_size}...")
+    print(f"Few-Shot Strategy: {selector_strategy} | K: {k_shots}")
     
     for model in models:
         print(f"\n{'='*50}")
@@ -31,7 +32,12 @@ def benchmark_models(models, sample_size, dataset_path):
         try:
             ensure_model_exists(model)
             
-            pipeline = MetricsPipeline(model_name=model, dataset_path=dataset_path)
+            pipeline = MetricsPipeline(
+                model_name=model, 
+                dataset_path=dataset_path,
+                selector_strategy=selector_strategy,
+                k_shots=k_shots
+            )
             pipeline.load_data()
             accuracy, f1_weighted, f1_macro, avg_prompt_tokens, avg_completion_tokens = pipeline.evaluate(sample_size=sample_size)
             
@@ -42,6 +48,8 @@ def benchmark_models(models, sample_size, dataset_path):
                 "F1 (Macro)": f1_macro,
                 "Avg Prompt Tokens": avg_prompt_tokens,
                 "Avg Completion Tokens": avg_completion_tokens,
+                "Strategy": selector_strategy,
+                "K": k_shots,
                 "Status": "Success"
             })
             print(f"Model {model} matched with accuracy: {accuracy:.2%}")
@@ -73,6 +81,9 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str, default="datasets/competition_math/data/", help="Path to dataset")
     parser.add_argument("--sample", type=int, default=5, help="Number of samples to evaluate per model")
     
+    parser.add_argument("--strategy", type=str, default="random", help="Shot selection strategy (random, lexical, semantic, cross_encoder)")
+    parser.add_argument("--k", type=int, default=0, help="Number of few-shot examples (0 for zero-shot)")
+    
     args = parser.parse_args()
     
-    benchmark_models(args.models, args.sample, args.dataset)
+    benchmark_models(args.models, args.sample, args.dataset, args.strategy, args.k)

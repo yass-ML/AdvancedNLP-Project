@@ -5,11 +5,15 @@ import requests
 import argparse
 import os
 import glob
+from shot_selector import ShotSelector
 
 class MetricsPipeline:
-    def __init__(self, model_name="llama3:8b", dataset_path="datasets/competition_math"):
+    def __init__(self, model_name="llama3:8b", dataset_path="datasets/competition_math", selector_strategy="random", k_shots=0):
         self.model_name = model_name
         self.dataset_path = dataset_path
+        self.selector_strategy = selector_strategy
+        self.k_shots = k_shots
+        self.selector = None
         self.base_url = "http://localhost:11434/api/generate"
         self.categories = ["Algebra", "Counting & Probability", "Geometry", "Intermediate Algebra", "Number Theory", "Prealgebra", "Precalculus"]
 
@@ -29,14 +33,31 @@ class MetricsPipeline:
         dfs = [pd.read_parquet(f) for f in files]
         self.df = pd.concat(dfs, ignore_index=True)
         print(f"Loaded {len(self.df)} examples.")
+        
+        if self.k_shots > 0:
+            print(f"Initializing ShotSelector (strategy={self.selector_strategy}, k={self.k_shots})...")
+            self.selector = ShotSelector(self.df, method=self.selector_strategy, k=self.k_shots)
 
     def predict(self, problem):
         """Sends the problem to Ollama for classification."""
+        
+        examples_str = ""
+        try:
+            examples = self.selector.select(problem, k=self.k_shots)
+            examples_str = "Here are some examples:\n\n"
+            for i, ex in enumerate(examples):
+                # Basic filtering: don't use the problem itself as an example
+                if ex['problem'].strip() == problem.strip():
+                    continue
+                examples_str += f"Example {i+1}:\nProblem: {ex['problem']}\nCategory: {ex['type']}\n\n"
+        except Exception as e:
+            print(f"Selector error: {e}")
+        
         prompt = f"""
         Classify the following math problem into exactly one of these categories: {', '.join(self.categories)}.
         Return ONLY the category name. Do not include any other text.
         
-        Problem: {problem}
+        {examples_str}Problem: {problem}
         
         Category:
         """
