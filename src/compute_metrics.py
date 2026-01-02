@@ -42,22 +42,23 @@ class MetricsPipeline:
         """Sends the problem to Ollama for classification."""
         
         examples_str = ""
-        try:
-            examples = self.selector.select(problem, k=self.k_shots)
-            examples_str = "Here are some examples:\n\n"
-            for i, ex in enumerate(examples):
-                # Basic filtering: don't use the problem itself as an example
-                if ex['problem'].strip() == problem.strip():
-                    continue
-                examples_str += f"Example {i+1}:\nProblem: {ex['problem']}\nCategory: {ex['type']}\n\n"
-        except Exception as e:
-            print(f"Selector error: {e}")
+        if self.k_shots > 0 and self.selector:
+            try:
+                examples = self.selector.select(problem, k=self.k_shots)
+                examples_str = "Here are some examples:\n\n"
+                for i, ex in enumerate(examples):
+                    # Basic filtering: don't use the problem itself as an example
+                    if ex['problem'].strip() == problem.strip():
+                        continue
+                    examples_str += f"Example {i+1}:\nProblem: {ex['problem']}\nCategory: {ex['type']}\n\n"
+            except Exception as e:
+                print(f"Selector error: {e}")
         
         prompt = f"""
         Classify the following math problem into exactly one of these categories: {', '.join(self.categories)}.
         Return ONLY the category name. Do not include any other text.
         
-        {examples_str}Problem: {problem}
+        {examples_str if examples_str else ""} Problem: {problem}
         
         Category:
         """
