@@ -5,11 +5,15 @@ except ImportError:
 
 
 from .config import TrainingConfig
+from .model_registry import get_model_id
 
 
 def load_model(config : TrainingConfig):
+    # Resolve short model name to full HuggingFace ID
+    model_id = get_model_id(config.model_name)
+
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name = config.model_name,
+        model_name = model_id,
         max_seq_length = config.max_seq_len,
         load_in_4bit = config.load_in_4bit,
         dtype = None,

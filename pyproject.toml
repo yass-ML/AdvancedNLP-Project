@@ -11,7 +11,14 @@ dependencies = [
     "peft",
     "datasets",
     "torch",
+    "torchvision",
     "trl",
-    "unsloth",
-    "numpy"
+    "unsloth[colab-new]",
+    "numpy",
+    "tqdm",
+    "tensorboard>=2.20.0",
+    "jupyter",
 ]
+
+[tool.uv.sources]
+unsloth = { git = "https://github.com/unslothai/unsloth.git" }

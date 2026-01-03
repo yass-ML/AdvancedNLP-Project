@@ -65,3 +65,6 @@ env/
 Thumbs.db
 
 datasets/*
+fine_tunings/
+outputs/
+unsloth_compiled_cache/

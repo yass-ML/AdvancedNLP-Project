@@ -3,27 +3,35 @@ from .config import TrainingConfig
 
 # This data loader works only for the math dataset for now
 
-def formatting_prompts_func(examples):
+def make_formatting_func(valid_classes: list[str]):
     """
-    Formats the raw dataset into an instruction-tuning format.
-    Unsloth/TRL will automatically train on the 'text' field.
+    Creates a formatting function with the valid classes baked in.
     """
-    instruction = "Classify the following math problem into its category (e.g., Algebra, Geometry, Number Theory)."
+    classes_str = ", ".join(sorted(valid_classes))
 
-    problems = examples["problem"]
-    types    = examples["type"]
-    texts    = []
-    prompts  = []
+    def formatting_prompts_func(examples):
+        """
+        Formats the raw dataset into an instruction-tuning format.
+        Unsloth/TRL will automatically train on the 'text' field.
+        """
+        instruction = f"Classify the following math problem into exactly one of the following categories: {classes_str}. Return only the category name. Do not add any additional text or explanation."
 
-    for problem, type_ in zip(problems, types):
-        # The standard Alpaca/Instruction format
-        prompt = f"Instruction: {instruction}\nInput: {problem}\nOutput: "
-        text   = f"{prompt}{type_}"
+        problems = examples["problem"]
+        types    = examples["type"]
+        texts    = []
+        prompts  = []
 
-        texts.append(text)
-        prompts.append(prompt)
+        for problem, type_ in zip(problems, types):
+            # The standard Alpaca/Instruction format
+            prompt = f"Instruction: {instruction}\nProblem: {problem}\nCategory: "
+            text   = f"{prompt}{type_}"
 
-    return { "text" : texts, "prompt" : prompts }
+            texts.append(text)
+            prompts.append(prompt)
+
+        return { "text" : texts, "prompt" : prompts }
+
+    return formatting_prompts_func
 
 def get_dataset(config:TrainingConfig):
     """
@@ -44,15 +52,28 @@ def get_dataset(config:TrainingConfig):
             limit = config.subset_limit
         dataset = dataset.select(range(limit))
 
-    # 3. Split into Train (90%) and Test (10%)
-    dataset_dict = dataset.train_test_split(test_size=0.1, seed=42)
+    # 3. Extract unique classes BEFORE splitting (so both splits use same classes)
+    valid_classes = list(set(dataset["type"]))
+    print(f"Found {len(valid_classes)} classes: {sorted(valid_classes)}")
 
-    train_dataset = dataset_dict["train"]
-    test_dataset  = dataset_dict["test"]
+    # 4. Split into Train (80%), Val (10%), Test (10%)
+    # First split off 10% for test
+    main_split = dataset.train_test_split(test_size=0.1, seed=42)
+    test_dataset = main_split["test"]
+    remaining_dataset = main_split["train"]
 
-    # 4. Apply the formatting function
-    # batched=True is much faster as it uses multithreading internally
-    train_dataset = train_dataset.map(formatting_prompts_func, batched=True)
-    test_dataset  = test_dataset.map(formatting_prompts_func, batched=True)
+    # Now split the remaining into Train (80% total) and Val (10% total)
+    train_val_split = remaining_dataset.train_test_split(test_size=0.1/0.9, seed=42)
+    train_dataset = train_val_split["train"]
+    val_dataset   = train_val_split["test"]
 
-    return train_dataset, test_dataset
+    # Note: Class balancing is handled via WeightedRandomSampler in trainer.py
+    # This avoids duplicating data in memory
+
+    # 5. Apply the formatting function with valid classes
+    formatting_func = make_formatting_func(valid_classes)
+    train_dataset = train_dataset.map(formatting_func, batched=True)
+    val_dataset   = val_dataset.map(formatting_func, batched=True)
+    test_dataset  = test_dataset.map(formatting_func, batched=True)
+
+    return train_dataset, val_dataset, test_dataset

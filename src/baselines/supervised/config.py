@@ -1,4 +1,6 @@
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 @dataclass
 class TrainingConfig:
@@ -12,6 +14,7 @@ class TrainingConfig:
     lora_rank: int
     lora_alpha: int
     target_modules: list
+    run_name: str = "default"
     subset_limit: float | int | None = None
 
 def get_config(
@@ -25,6 +28,7 @@ def get_config(
     lora_rank: int = 16,
     lora_alpha: int = 16,
     target_modules: list = None,
+    run_name: str = "default",
     subset_limit: float | int | None = None
 ) -> TrainingConfig:
     if target_modules is None:
@@ -41,5 +45,13 @@ def get_config(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         target_modules=target_modules,
+        run_name=run_name,
         subset_limit=subset_limit
     )
+
+def load_config(model_path: str) -> TrainingConfig:
+    """Load a TrainingConfig from a saved model directory."""
+    config_path = Path(model_path) / "training_config.json"
+    with open(config_path, "r") as f:
+        config_dict = json.load(f)
+    return TrainingConfig(**config_dict)
