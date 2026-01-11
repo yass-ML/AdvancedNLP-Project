@@ -21,7 +21,7 @@ def train(config: TrainingConfig):
     train_dataset, val_dataset, test_dataset = get_dataset(config)
 
     # 3. Training Arguments (The Control Panel)
-    checkpoint_dir = f"fine_tunings/{config.run_name}/checkpoints"
+    checkpoint_dir = f"fine_tunings/unsloth/{config.run_name}/checkpoints"
     args = TrainingArguments(
         output_dir = checkpoint_dir,
         per_device_train_batch_size = config.batch_size,
@@ -50,7 +50,7 @@ def train(config: TrainingConfig):
 
         # TensorBoard logging
         report_to = "tensorboard",
-        logging_dir = f"fine_tunings/{config.run_name}/logs",
+        logging_dir = f"fine_tunings/unsloth/{config.run_name}/logs",
 
         seed = 3407,
     )
@@ -72,7 +72,7 @@ def train(config: TrainingConfig):
     trainer_stats = trainer.train()
 
     # Create output directory
-    output_dir = f"fine_tunings/{config.run_name}"
+    output_dir = f"fine_tunings/unsloth/{config.run_name}"
     os.makedirs(output_dir, exist_ok=True)
 
     print(f"Saving BEST model adapters (load_best_model_at_end=True) to {output_dir}...")
