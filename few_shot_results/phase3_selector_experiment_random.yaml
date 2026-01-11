@@ -1,0 +1,10 @@
+- Model: llama3:8b
+  Strategy: random
+  K: 3
+  Accuracy: 0.47
+  F1_Weighted: 0.38171584933349645
+  F1_Macro: 0.3856989989342931
+  Avg_Prompt_Tokens: 398.02
+  Avg_Completion_Tokens: 3.24
+  Avg_Latency_Seconds: 0.3239923524856567
+  Task: Phase 3 Selector Experiment

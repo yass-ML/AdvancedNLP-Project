@@ -1,0 +1,10 @@
+- Model: llama3:8b
+  Strategy: semantic
+  K: 3
+  Accuracy: 0.76
+  F1_Weighted: 0.7559407913287224
+  F1_Macro: 0.7518728808137676
+  Avg_Prompt_Tokens: 355.42
+  Avg_Completion_Tokens: 3.24
+  Avg_Latency_Seconds: 0.29937206029891966
+  Task: Phase 3 Selector Experiment
