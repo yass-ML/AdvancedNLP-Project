@@ -1,11 +1,11 @@
 _MODEL_MAP = {
     # Llama 3
-    "llama3:8b": "meta-llama/Meta-Llama-3-8B",
-    "llama3:8b-instruct": "meta-llama/Meta-Llama-3-8B-Instruct",
+    # "llama3:8b": "meta-llama/Meta-Llama-3-8B",
+    # "llama3:8b-instruct": "meta-llama/Meta-Llama-3-8B-Instruct",
 
     # Mistral
-    "mistral:7b": "mistralai/Mistral-7B-v0.3",
-    "mistral:7b-instruct": "mistralai/Mistral-7B-Instruct-v0.3",
+    # "mistral:7b": "mistralai/Mistral-7B-v0.3",
+    # "mistral:7b-instruct": "mistralai/Mistral-7B-Instruct-v0.3",
 
     # Gemma
     "gemma:7b": "google/gemma-7b",

@@ -67,8 +67,7 @@ def get_dataset(config:TrainingConfig):
     train_dataset = train_val_split["train"]
     val_dataset   = train_val_split["test"]
 
-    # Note: Class balancing is handled via WeightedRandomSampler in trainer.py
-    # This avoids duplicating data in memory
+
 
     # 5. Apply the formatting function with valid classes
     formatting_func = make_formatting_func(valid_classes)

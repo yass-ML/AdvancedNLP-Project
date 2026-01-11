@@ -3,7 +3,7 @@ try:
 except ImportError:
     FastLanguageModel = None
 
-from .config import load_config
+from .config import load_config, get_config
 from .data_loader import get_dataset
 
 import torch
@@ -21,8 +21,27 @@ MODEL_PATH = "fine_tunings/llama3:8b" # Or "outputs/checkpoint-60" if testing mi
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_path", type=str, default=MODEL_PATH)
+    parser.add_argument("--dataset", type=str, default=None, help="Override dataset path (required for base models)")
     args = parser.parse_args()
-    conf = load_config(model_path=args.model_path)
+
+    try:
+        conf = load_config(model_path=args.model_path)
+        # Allow overriding dataset even for fine-tuned models if needed
+        if args.dataset:
+            conf.dataset_path = args.dataset
+    except (FileNotFoundError, OSError):
+        print(f"Warning: No training_config.json found at {args.model_path}. Assuming Base Model evaluation.")
+        if args.dataset is None:
+            # Default fallback if not provided
+            args.dataset = "qwedsacf/competition_math"
+            print(f"Using default dataset: {args.dataset}")
+
+        conf = get_config(
+            model_name=args.model_path,
+            dataset_path=args.dataset,
+            run_name="base_model_eval",
+            num_epochs=0
+        )
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=args.model_path,
         max_seq_length = conf.max_seq_len,
@@ -33,7 +52,7 @@ if __name__ == "__main__":
     FastLanguageModel.for_inference(model)
 
     _, _, test_dataset = get_dataset(config= conf)
-    test_dataset = test_dataset.select(range(min(100, len(test_dataset))))  # Limit to 200 samples
+    # test_dataset = test_dataset.select(range(min(100, len(test_dataset))))  # Limit to 200 samples
     y_true, y_pred, tokens_per_sec = [], [], []
 
     pbar = tqdm(test_dataset, desc="Evaluating", unit="sample")
@@ -109,6 +128,7 @@ if __name__ == "__main__":
         "model_name": conf.model_name,
         "run_name": conf.run_name,
         "dataset": conf.dataset_path,
+        "test_size": len(y_true),
         "accuracy": accuracy,
         "precision_weighted": precision,
         "recall_weighted": recall,
@@ -133,7 +153,7 @@ if __name__ == "__main__":
     csv_file = "fine_tunings/experiments.csv"
     df = pd.DataFrame([results])
 
-    if os.path.exists(csv_file):
+    if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
         df.to_csv(csv_file, mode='a', header=False, index=False)
     else:
         df.to_csv(csv_file, mode='w', header=True, index=False)

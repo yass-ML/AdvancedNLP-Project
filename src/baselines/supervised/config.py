@@ -50,8 +50,22 @@ def get_config(
     )
 
 def load_config(model_path: str) -> TrainingConfig:
-    """Load a TrainingConfig from a saved model directory."""
-    config_path = Path(model_path) / "training_config.json"
+    """Load a TrainingConfig from a saved model directory (or its parents)."""
+    path = Path(model_path)
+
+    # Try current directory and up to 2 parents (e.g. checkpoints/checkpoint-X -> run_dir)
+    candidates = [path, path.parent, path.parent.parent]
+
+    config_path = None
+    for candidate in candidates:
+        possible_path = candidate / "training_config.json"
+        if possible_path.exists():
+            config_path = possible_path
+            break
+
+    if config_path is None:
+        raise FileNotFoundError(f"Could not find training_config.json in {model_path} or its parents.")
+
     with open(config_path, "r") as f:
         config_dict = json.load(f)
     return TrainingConfig(**config_dict)
