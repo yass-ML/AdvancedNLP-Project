@@ -1,8 +1,9 @@
 import argparse
 import pandas as pd
 from compute_metrics import MetricsPipeline
-
+import yaml
 import subprocess
+import os
 
 def ensure_model_exists(model_name):
     """Checks if model exists in Ollama, pulls if not."""
@@ -16,13 +17,12 @@ def ensure_model_exists(model_name):
             print(f"Model {model_name} found.")
     except subprocess.CalledProcessError as e:
         print(f"Error checking/pulling model {model_name}: {e}")
-        raise
 
-def benchmark_models(models, sample_size, dataset_path, selector_strategy, k_shots):
+def benchmark_models(models, sample_size, dataset_path, selector_strategy, k_shots, dpo_path):
     results = []
     
-    print(f"Starting benchmark on {len(models)} models with sample_size={sample_size}...")
-    print(f"Few-Shot Strategy: {selector_strategy} | K: {k_shots}")
+    print(f"Starting benchmark...")
+    print(f"Strategy: {selector_strategy} | K: {k_shots} | DPO Path: {dpo_path}")
     
     for model in models:
         print(f"\n{'='*50}")
@@ -36,54 +36,64 @@ def benchmark_models(models, sample_size, dataset_path, selector_strategy, k_sho
                 model_name=model, 
                 dataset_path=dataset_path,
                 selector_strategy=selector_strategy,
-                k_shots=k_shots
+                k_shots=k_shots,
+                dpo_model_path=dpo_path
             )
+            
             pipeline.load_data()
-            accuracy, f1_weighted, f1_macro, avg_prompt_tokens, avg_completion_tokens = pipeline.evaluate(sample_size=sample_size)
+            
+            accuracy, f1_w, f1_m, avg_prompt, avg_comp = pipeline.evaluate(sample_size=sample_size)
             
             results.append({
                 "Model": model,
                 "Accuracy": accuracy,
-                "F1 (Weighted)": f1_weighted,
-                "F1 (Macro)": f1_macro,
-                "Avg Prompt Tokens": avg_prompt_tokens,
-                "Avg Completion Tokens": avg_completion_tokens,
+                "F1 (Weighted)": f1_w,
+                "F1 (Macro)": f1_m,
+                "Avg Prompt Tokens": avg_prompt,
+                "Avg Completion Tokens": avg_comp,
                 "Strategy": selector_strategy,
                 "K": k_shots,
                 "Status": "Success"
             })
-            print(f"Model {model} matched with accuracy: {accuracy:.2%}")
+            print(f"Model {model} Result: Accuracy={accuracy:.2%}")
             
         except Exception as e:
             print(f"Failed to evaluate {model}: {e}")
             results.append({
                 "Model": model,
                 "Accuracy": 0.0,
-                "F1 (Weighted)": 0.0,
-                "F1 (Macro)": 0.0,
-                "Avg Prompt Tokens": 0.0,
-                "Avg Completion Tokens": 0.0,
+                "Strategy": selector_strategy,
                 "Status": f"Failed: {str(e)}"
             })
             
     df_results = pd.DataFrame(results)
-    output_file = "benchmark_results.csv"
-    df_results.to_csv(output_file, index=False)
     
-    print(f"\nBenchmark completed. Results saved to {output_file}")
-    print(df_results)
+    os.makedirs("few_shot_results", exist_ok=True)
+    output_filename = f"benchmark_{selector_strategy}_k{k_shots}.yaml"
+    output_path = os.path.join("few_shot_results", output_filename)
+
+    with open(output_path, "w+") as file:
+        yaml.dump(df_results.to_dict(orient='records'), file)
+
+    print(f"\nBenchmark completed. Results saved to {output_path}")
+    print(df_results[["Model", "Accuracy", "Strategy"]])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Benchmark SLMs on Math Classification")
     parser.add_argument("--models", type=str, nargs="+", 
-                        default=["llama3:8b", "mistral:7b", "gemma:7b", "phi3:mini", "qwen2:7b"],
-                        help="List of Ollama models to benchmark")
-    parser.add_argument("--dataset", type=str, default="datasets/competition_math/data/", help="Path to dataset")
-    parser.add_argument("--sample", type=int, default=5, help="Number of samples to evaluate per model")
+                        default=["phi3:mini", "llama3:8b"],
+                        help="List of Ollama models")
+    parser.add_argument("--dataset", type=str, default="datasets/competition_math/data/train-00000-of-00001-7320a6f3aba8ebd2.parquet")
+    parser.add_argument("--sample", type=int, default=10, help="Number of samples")
     
-    parser.add_argument("--strategy", type=str, default="random", help="Shot selection strategy (random, lexical, semantic, cross_encoder)")
-    parser.add_argument("--k", type=int, default=0, help="Number of few-shot examples (0 for zero-shot)")
+    parser.add_argument("--strategy", type=str, default="random", 
+                        choices=["random", "lexical", "semantic", "cross_encoder", "dpo"],
+                        help="Shot selection strategy")
+    parser.add_argument("--k", type=int, default=3, help="Number of few-shot examples")
+    
+    parser.add_argument("--dpo_path", type=str, default="dpo_selector_model", 
+                        help="Path to the trained DPO Cross-Encoder model")
     
     args = parser.parse_args()
     
-    benchmark_models(args.models, args.sample, args.dataset, args.strategy, args.k)
+    benchmark_models(args.models, args.sample, args.dataset, args.strategy, args.k, args.dpo_path)

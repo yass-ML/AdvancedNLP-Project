@@ -1,4 +1,3 @@
-
 import pandas as pd
 from sklearn.metrics import f1_score
 import requests
@@ -8,11 +7,23 @@ import glob
 from shot_selector import ShotSelector
 
 class MetricsPipeline:
-    def __init__(self, model_name="llama3:8b", dataset_path="datasets/competition_math", selector_strategy="random", k_shots=0):
+    def __init__(self, model_name="llama3:8b", dataset_path="datasets/competition_math", 
+                 selector_strategy="random", k_shots=0, dpo_model_path="dpo_selector_model"):
+        """
+        Initializes the pipeline.
+        
+        Args:
+            model_name: The Ollama model tag.
+            dataset_path: Path to the dataset folder.
+            selector_strategy: 'random', 'semantic', 'lexical', 'cross_encoder', or 'dpo'.
+            k_shots: Number of examples to include in the prompt.
+            dpo_model_path: Path to the trained DPO Cross-Encoder (only used if strategy='dpo').
+        """
         self.model_name = model_name
         self.dataset_path = dataset_path
         self.selector_strategy = selector_strategy
         self.k_shots = k_shots
+        self.dpo_model_path = dpo_model_path  # Store the path
         self.selector = None
         self.base_url = "http://localhost:11434/api/generate"
         self.categories = ["Algebra", "Counting & Probability", "Geometry", "Intermediate Algebra", "Number Theory", "Prealgebra", "Precalculus"]
@@ -26,6 +37,9 @@ class MetricsPipeline:
             search_path = os.path.join(self.dataset_path, "data", "*.parquet")
             files = glob.glob(search_path, recursive=True)
 
+        if not files and os.path.isfile(self.dataset_path) and self.dataset_path.endswith('.parquet'):
+            files = [self.dataset_path]
+
         if not files:
             raise FileNotFoundError(f"No parquet files found in {self.dataset_path}")
             
@@ -36,7 +50,12 @@ class MetricsPipeline:
         
         if self.k_shots > 0:
             print(f"Initializing ShotSelector (strategy={self.selector_strategy}, k={self.k_shots})...")
-            self.selector = ShotSelector(self.df, method=self.selector_strategy, k=self.k_shots)
+            self.selector = ShotSelector(
+                self.df, 
+                method=self.selector_strategy, 
+                k=self.k_shots,
+                dpo_model_path=self.dpo_model_path
+            )
 
     def predict(self, problem):
         """Sends the problem to Ollama for classification."""
@@ -47,10 +66,10 @@ class MetricsPipeline:
                 examples = self.selector.select(problem, k=self.k_shots)
                 examples_str = "Here are some examples:\n\n"
                 for i, ex in enumerate(examples):
-                    # Basic filtering: don't use the problem itself as an example
                     if ex['problem'].strip() == problem.strip():
                         continue
-                    examples_str += f"Example {i+1}:\nProblem: {ex['problem']}\nCategory: {ex['type']}\n\n"
+                    label = ex.get('type', ex.get('category', 'Unknown'))
+                    examples_str += f"Example {i+1}:\nProblem: {ex['problem']}\nCategory: {label}\n\n"
             except Exception as e:
                 print(f"Selector error: {e}")
         
@@ -66,7 +85,10 @@ class MetricsPipeline:
         payload = {
             "model": self.model_name,
             "prompt": prompt,
-            "stream": False
+            "stream": False,
+            "options": {
+                "temperature": 0.0
+            }
         }
         
         try:
@@ -79,6 +101,7 @@ class MetricsPipeline:
             prompt_eval_count = data.get("prompt_eval_count", 0)
             eval_count = data.get("eval_count", 0)
             
+            # Flexible matching for category
             for cat in sorted(self.categories, key=len, reverse=True):
                 if cat.lower() in result.lower():
                     return cat, prompt_eval_count, eval_count
@@ -101,19 +124,24 @@ class MetricsPipeline:
         y_pred = []
         total_prompt_tokens = 0
         total_completion_tokens = 0
+        total_latency = 0.0
         
         print("Starting classification...")
         for i, row in data.iterrows():
             problem = row['problem']
-            true_label = row['type']
+            true_label = row.get('type', row.get('category', 'Unknown')) # robust column access
             
             # Unpack prediction and tokens
+            import time
+            start_time = time.time()
             predicted_label, prompt_tokens, completion_tokens = self.predict(problem)
+            latency = time.time() - start_time
             
             y_true.append(true_label)
             y_pred.append(predicted_label)
             total_prompt_tokens += prompt_tokens
             total_completion_tokens += completion_tokens
+            total_latency += latency
             
             is_correct = predicted_label == true_label
             if is_correct:
@@ -128,14 +156,16 @@ class MetricsPipeline:
         
         avg_prompt_tokens = total_prompt_tokens / total if total > 0 else 0
         avg_completion_tokens = total_completion_tokens / total if total > 0 else 0
+        avg_latency = total_latency / total if total > 0 else 0.0
         
         print(f"Accuracy: {accuracy:.2%}")
         print(f"F1 (Weighted): {f1_weighted:.4f}")
         print(f"F1 (Macro): {f1_macro:.4f}")
         print(f"Avg Prompt Tokens: {avg_prompt_tokens:.1f}")
         print(f"Avg Completion Tokens: {avg_completion_tokens:.1f}")
+        print(f"Avg Latency: {avg_latency:.4f}s")
         
-        return accuracy, f1_weighted, f1_macro, avg_prompt_tokens, avg_completion_tokens
+        return accuracy, f1_weighted, f1_macro, avg_prompt_tokens, avg_completion_tokens, avg_latency
 
     def run(self, sample_size=5):
         self.load_data()
@@ -147,7 +177,21 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str, default="datasets/competition_math/data/", help="Path to dataset")
     parser.add_argument("--sample", type=int, default=5, help="Number of samples to evaluate")
     
+    # Added arguments to support standalone testing of strategies
+    parser.add_argument("--strategy", type=str, default="random", 
+                        choices=["random", "lexical", "semantic", "cross_encoder", "dpo"],
+                        help="Shot selection strategy")
+    parser.add_argument("--k", type=int, default=0, help="Number of few-shot examples")
+    parser.add_argument("--dpo_path", type=str, default="dpo_selector_model", 
+                        help="Path to trained DPO model")
+    
     args = parser.parse_args()
     
-    pipeline = MetricsPipeline(model_name=args.model, dataset_path=args.dataset)
+    pipeline = MetricsPipeline(
+        model_name=args.model, 
+        dataset_path=args.dataset,
+        selector_strategy=args.strategy,
+        k_shots=args.k,
+        dpo_model_path=args.dpo_path
+    )
     pipeline.run(sample_size=args.sample)

@@ -1,0 +1,10 @@
+- Model: llama3:8b
+  Strategy: lexical
+  K: 3
+  Accuracy: 0.7
+  F1_Weighted: 0.6907402752564041
+  F1_Macro: 0.6770517282238381
+  Avg_Prompt_Tokens: 327.97
+  Avg_Completion_Tokens: 3.23
+  Avg_Latency_Seconds: 0.31261022567749025
+  Task: Phase 3 Selector Experiment
