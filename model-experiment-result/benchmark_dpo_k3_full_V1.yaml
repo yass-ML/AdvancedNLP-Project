@@ -1,0 +1,65 @@
+- Accuracy: 0.76
+  Avg Completion Tokens: 3.35
+  Avg Latency: 1.0132302117347718
+  Avg Prompt Tokens: 443.13
+  F1 (Macro): 0.7500588121555863
+  F1 (Weighted): 0.751788950297015
+  K: 3
+  Model: llama3:8b
+  Status: Success
+  Strategy: dpo
+
+- Accuracy: 0.7
+  Avg Completion Tokens: 4.46
+  Avg Latency: 0.9881535935401916
+  Avg Prompt Tokens: 510.24
+  F1 (Macro): 0.7112481546642516
+  F1 (Weighted): 0.6842642220591906
+  K: 3
+  Model: mistral:7b
+  Status: Success
+  Strategy: dpo
+  
+- Accuracy: 0.68
+  Avg Completion Tokens: 2.89
+  Avg Latency: 1.0615246677398682
+  Avg Prompt Tokens: 482.03
+  F1 (Macro): 0.675200653904973
+  F1 (Weighted): 0.666219084533038
+  K: 3
+  Model: gemma:7b
+  Status: Success
+  Strategy: dpo
+  
+- Accuracy: 0.38
+  Avg Completion Tokens: 12.26
+  Avg Latency: 0.9279293894767762
+  Avg Prompt Tokens: 508.65
+  F1 (Macro): 0.37248196532084005
+  F1 (Weighted): 0.38939302527537817
+  K: 3
+  Model: phi3:mini
+  Status: Success
+  Strategy: dpo
+
+- Accuracy: 0.75
+  Avg Completion Tokens: 3.41
+  Avg Latency: 0.9779526829719544
+  Avg Prompt Tokens: 467.67
+  F1 (Macro): 0.7708771170623868
+  F1 (Weighted): 0.7409893540717762
+  K: 3
+  Model: qwen2:7b
+  Status: Success
+  Strategy: dpo
+
+- Accuracy: 0.8
+  Avg Completion Tokens: 1766.51
+  Avg Latency: 33.94746565580368
+  Avg Prompt Tokens: 458.67
+  F1 (Macro): 0.7200272106593761
+  F1 (Weighted): 0.8251321839080461
+  K: 3
+  Model: qwen3:8b
+  Status: Success
+  Strategy: dpo

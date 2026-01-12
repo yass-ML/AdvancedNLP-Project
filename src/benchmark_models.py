@@ -18,7 +18,7 @@ def ensure_model_exists(model_name):
     except subprocess.CalledProcessError as e:
         print(f"Error checking/pulling model {model_name}: {e}")
 
-def benchmark_models(models, sample_size, dataset_path, selector_strategy, k_shots, dpo_path):
+def benchmark_models(models, sample_size, dataset_path, selector_strategy, k_shots, dpo_path, output_dir="few_shot_results"):
     results = []
     
     print(f"Starting benchmark...")
@@ -42,7 +42,7 @@ def benchmark_models(models, sample_size, dataset_path, selector_strategy, k_sho
             
             pipeline.load_data()
             
-            accuracy, f1_w, f1_m, avg_prompt, avg_comp = pipeline.evaluate(sample_size=sample_size)
+            accuracy, f1_w, f1_m, avg_prompt, avg_comp, avg_latency = pipeline.evaluate(sample_size=sample_size)
             
             results.append({
                 "Model": model,
@@ -51,6 +51,7 @@ def benchmark_models(models, sample_size, dataset_path, selector_strategy, k_sho
                 "F1 (Macro)": f1_m,
                 "Avg Prompt Tokens": avg_prompt,
                 "Avg Completion Tokens": avg_comp,
+                "Avg Latency": avg_latency,
                 "Strategy": selector_strategy,
                 "K": k_shots,
                 "Status": "Success"
@@ -68,15 +69,17 @@ def benchmark_models(models, sample_size, dataset_path, selector_strategy, k_sho
             
     df_results = pd.DataFrame(results)
     
-    os.makedirs("few_shot_results", exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
     output_filename = f"benchmark_{selector_strategy}_k{k_shots}.yaml"
-    output_path = os.path.join("few_shot_results", output_filename)
+    output_path = os.path.join(output_dir, output_filename)
 
     with open(output_path, "w+") as file:
         yaml.dump(df_results.to_dict(orient='records'), file)
 
     print(f"\nBenchmark completed. Results saved to {output_path}")
     print(df_results[["Model", "Accuracy", "Strategy"]])
+
+    return results
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Benchmark SLMs on Math Classification")
