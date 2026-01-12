@@ -8,6 +8,7 @@
   Model: llama3:8b
   Status: Success
   Strategy: dpo
+
 - Accuracy: 0.7
   Avg Completion Tokens: 4.46
   Avg Latency: 0.9881535935401916
@@ -18,6 +19,7 @@
   Model: mistral:7b
   Status: Success
   Strategy: dpo
+  
 - Accuracy: 0.68
   Avg Completion Tokens: 2.89
   Avg Latency: 1.0615246677398682
@@ -48,5 +50,16 @@
   F1 (Weighted): 0.7409893540717762
   K: 3
   Model: qwen2:7b
+  Status: Success
+  Strategy: dpo
+
+- Accuracy: 0.8
+  Avg Completion Tokens: 1766.51
+  Avg Latency: 33.94746565580368
+  Avg Prompt Tokens: 458.67
+  F1 (Macro): 0.7200272106593761
+  F1 (Weighted): 0.8251321839080461
+  K: 3
+  Model: qwen3:8b
   Status: Success
   Strategy: dpo

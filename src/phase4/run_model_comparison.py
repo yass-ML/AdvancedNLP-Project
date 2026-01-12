@@ -9,8 +9,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from benchmark_models import benchmark_models
 
 def run_comparison(sample_size, k_shots, dataset_path, dpo_path):
-    MODELS = ['llama3:8b','qwen3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini']
-    STRATEGIES = ['semantic', 'dpo']
+    MODELS = ['llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini']
+    STRATEGIES = ['semantic']
     
     all_results = []
     

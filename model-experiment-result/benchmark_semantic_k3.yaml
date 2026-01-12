@@ -1,10 +1,40 @@
-- Accuracy: 0.77
-  Avg Completion Tokens: 1970.61
-  Avg Latency: 38.086050667762755
-  Avg Prompt Tokens: 368.18
-  F1 (Macro): 0.6693101869394973
-  F1 (Weighted): 0.7913138688897309
+- Accuracy: 0.75
+  Avg Completion Tokens: 3.23
+  Avg Latency: 0.6073612475395203
+  Avg Prompt Tokens: 355.42
+  F1 (Macro): 0.7427243938327682
+  F1 (Weighted): 0.7475664070922692
   K: 3
-  Model: qwen3:8b
+  Model: llama3:8b
+  Status: Success
+  Strategy: semantic
+- Accuracy: 0.73
+  Avg Completion Tokens: 4.97
+  Avg Latency: 0.3992161822319031
+  Avg Prompt Tokens: 408.02
+  F1 (Macro): 0.6347116119174943
+  F1 (Weighted): 0.7253578304048892
+  K: 3
+  Model: mistral:7b
+  Status: Success
+  Strategy: semantic
+- Accuracy: 0.64
+  Avg Completion Tokens: 2.81
+  Avg Latency: 0.41669570207595824
+  Avg Prompt Tokens: 389.6
+  F1 (Macro): 0.5646472971472971
+  F1 (Weighted): 0.6390848484848485
+  K: 3
+  Model: gemma:7b
+  Status: Success
+  Strategy: semantic
+- Accuracy: 0.18
+  Avg Completion Tokens: 21.36
+  Avg Latency: 0.38008862495422363
+  Avg Prompt Tokens: 408.08
+  F1 (Macro): 0.16488247863247862
+  F1 (Weighted): 0.20317008547008547
+  K: 3
+  Model: phi3:mini
   Status: Success
   Strategy: semantic
