@@ -184,11 +184,13 @@ def load_model(config: ClassificationConfig):
         target_modules = _get_target_modules(model, config.target_modules)
 
         # Configure LoRA
+        # modules_to_save ensures the classification head is trained (not frozen)
         lora_config = LoraConfig(
             r=config.lora_rank,
             lora_alpha=config.lora_alpha,
             lora_dropout=config.lora_dropout,
             target_modules=target_modules,
+            modules_to_save=["score"],  # Explicitly train the classification head!
             bias="none",
             task_type=TaskType.SEQ_CLS,  # Sequence classification task
         )
@@ -238,7 +240,11 @@ def load_model_for_inference(model_path: str, config: ClassificationConfig = Non
     id2label = {int(k): v for k, v in config.id2label.items()} if config.id2label else None
     label2id = config.label2id  # label2id keys are strings, which is correct
 
-    # Load base model
+    # Load base model (suppress warning about uninitialized classification head
+    # since we'll load our trained weights immediately after)
+    import logging
+    logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+
     base_model = AutoModelForSequenceClassification.from_pretrained(
         model_id,
         num_labels=config.num_labels,
@@ -268,11 +274,30 @@ def load_model_for_inference(model_path: str, config: ClassificationConfig = Non
     if os.path.exists(classifier_head_path):
         print(f"Loading classification head from {classifier_head_path}...")
         classifier_state_dict = torch.load(classifier_head_path, map_location="cpu", weights_only=True)
+
+        # Handle different saved formats (old PEFT-wrapped vs new clean format)
+        # IMPORTANT: modules_to_save.default.weight contains the TRAINED weights
+        # original_module.weight contains the ORIGINAL (untrained) weights
+        if 'weight' in classifier_state_dict:
+            # New clean format
+            weight_tensor = classifier_state_dict['weight']
+        elif 'modules_to_save.default.weight' in classifier_state_dict:
+            # Old PEFT format - this is the TRAINED weight!
+            weight_tensor = classifier_state_dict['modules_to_save.default.weight']
+            print("  (using modules_to_save.default.weight - the trained weights)")
+        elif 'original_module.weight' in classifier_state_dict:
+            # Fallback to original (untrained) - should not normally happen
+            print("  WARNING: Only original_module.weight found, these may be untrained!")
+            weight_tensor = classifier_state_dict['original_module.weight']
+        else:
+            raise ValueError(f"Unknown classifier_head.pt format. Keys: {classifier_state_dict.keys()}")
+
+        # Load into the model
         if hasattr(model, 'score'):
-            model.score.load_state_dict(classifier_state_dict)
+            model.score.weight.data.copy_(weight_tensor)
             print("Classification head (score) loaded successfully.")
         elif hasattr(model, 'classifier'):
-            model.classifier.load_state_dict(classifier_state_dict)
+            model.classifier.weight.data.copy_(weight_tensor)
             print("Classification head (classifier) loaded successfully.")
     else:
         print(f"WARNING: No classifier_head.pt found at {classifier_head_path}")

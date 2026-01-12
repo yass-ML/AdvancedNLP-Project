@@ -228,11 +228,27 @@ def train(
         classifier_head_path = f"{output_dir}/classifier_head.pt"
         # Get the base model's classifier (score) layer
         base_model = model.get_base_model()
+
+        # Extract the actual weight from potentially PEFT-wrapped module
+        def get_classifier_weight(layer):
+            """Extract the actual weight tensor from a potentially PEFT-wrapped layer."""
+            if hasattr(layer, 'original_module'):
+                # PEFT wrapped module
+                return {'weight': layer.original_module.weight.data.clone()}
+            elif hasattr(layer, 'modules_to_save'):
+                # Another PEFT wrapping style
+                return {'weight': layer.modules_to_save['default'].weight.data.clone()}
+            else:
+                # Regular module
+                return {'weight': layer.weight.data.clone()}
+
         if hasattr(base_model, 'score'):
-            torch.save(base_model.score.state_dict(), classifier_head_path)
+            classifier_state = get_classifier_weight(base_model.score)
+            torch.save(classifier_state, classifier_head_path)
             print(f"Saved classification head to {classifier_head_path}")
         elif hasattr(base_model, 'classifier'):
-            torch.save(base_model.classifier.state_dict(), classifier_head_path)
+            classifier_state = get_classifier_weight(base_model.classifier)
+            torch.save(classifier_state, classifier_head_path)
             print(f"Saved classification head to {classifier_head_path}")
     else:
         trainer.save_model(output_dir)
