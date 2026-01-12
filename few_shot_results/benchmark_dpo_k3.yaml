@@ -1,4 +1,0 @@
-- Accuracy: 0.0
-  Model: llama3:8b
-  Status: 'Failed: too many values to unpack (expected 5)'
-  Strategy: dpo

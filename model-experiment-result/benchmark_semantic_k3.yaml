@@ -1,0 +1,10 @@
+- Accuracy: 0.77
+  Avg Completion Tokens: 1970.61
+  Avg Latency: 38.086050667762755
+  Avg Prompt Tokens: 368.18
+  F1 (Macro): 0.6693101869394973
+  F1 (Weighted): 0.7913138688897309
+  K: 3
+  Model: qwen3:8b
+  Status: Success
+  Strategy: semantic
