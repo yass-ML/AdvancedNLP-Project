@@ -220,8 +220,20 @@ def train(
 
     # Save the model (LoRA adapters if using PEFT, full model otherwise)
     if config.use_lora:
-        # Save only LoRA adapters
+        # Save LoRA adapters
         model.save_pretrained(output_dir)
+
+        # IMPORTANT: Also save the classification head separately
+        # LoRA only saves adapter weights, not the classifier head (score layer)
+        classifier_head_path = f"{output_dir}/classifier_head.pt"
+        # Get the base model's classifier (score) layer
+        base_model = model.get_base_model()
+        if hasattr(base_model, 'score'):
+            torch.save(base_model.score.state_dict(), classifier_head_path)
+            print(f"Saved classification head to {classifier_head_path}")
+        elif hasattr(base_model, 'classifier'):
+            torch.save(base_model.classifier.state_dict(), classifier_head_path)
+            print(f"Saved classification head to {classifier_head_path}")
     else:
         trainer.save_model(output_dir)
 

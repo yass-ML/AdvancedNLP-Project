@@ -262,5 +262,21 @@ def load_model_for_inference(model_path: str, config: ClassificationConfig = Non
     else:
         model = base_model
 
+    # Load the classification head (score layer) if saved separately
+    import os
+    classifier_head_path = os.path.join(model_path, "classifier_head.pt")
+    if os.path.exists(classifier_head_path):
+        print(f"Loading classification head from {classifier_head_path}...")
+        classifier_state_dict = torch.load(classifier_head_path, map_location="cpu", weights_only=True)
+        if hasattr(model, 'score'):
+            model.score.load_state_dict(classifier_state_dict)
+            print("Classification head (score) loaded successfully.")
+        elif hasattr(model, 'classifier'):
+            model.classifier.load_state_dict(classifier_state_dict)
+            print("Classification head (classifier) loaded successfully.")
+    else:
+        print(f"WARNING: No classifier_head.pt found at {classifier_head_path}")
+        print("The classification head weights may be randomly initialized!")
+
     model.eval()
     return model, tokenizer
