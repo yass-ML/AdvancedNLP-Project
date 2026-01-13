@@ -56,7 +56,7 @@
 % ---------------------------------------------------------
 
 \begin{abstract}
-Large Language Models (LLMs) have revolutionized NLP through In-Context Learning (ICL). However, a common misconception is ``the more examples, the better.'' Recent research suggests a ``Few-shot Dilemma'': increasing the number of shots can paradoxically lead to diminishing returns or performance degradation. \citep{fewshot2025}. Our project investigates this phenomenon specifically within the realm of Small Language Models (SLMs), such as Llama 3.2 and Phi-3. Unlike massive models, SLMs are constrained by smaller context windows. We aim to evaluate various example selection strategies ---ranging from semantic retrieval to lexical matching--- and systematically vary the number of examples ($K$) to determine the optimal context volume. Our goal is to determine if ``smarter'' example selection strategies can delay the onset of the few-shot dilemma compared to random selection, and identify the threshold where performance degradation begins, optimizing the trade-off between accuracy and inference cost.
+Large Language Models (LLMs) have revolutionized NLP through In-Context Learning (ICL). However, a common misconception is ``the more examples, the better.'' Recent research suggests a ``Few-shot Dilemma'': increasing the number of shots can paradoxically lead to diminishing returns or performance degradation. \citep{fewshot2025}. Our project investigates this phenomenon specifically within the realm of Small Language Models (SLMs), such as Llama 3.2 and Phi-3. Unlike massive models, SLMs are constrained by smaller context windows. We aim to evaluate various example selection strategies ranging from semantic retrieval to lexical matching and systematically vary the number of examples ($K$) to determine the optimal context volume. Our goal is to determine if ``smarter'' example selection strategies can delay the onset of the few-shot dilemma compared to random selection, and identify the threshold where performance degradation begins, optimizing the trade-off between accuracy and inference cost.
 \end{abstract}
 
 \newpage
@@ -70,7 +70,7 @@ Large Language Models (LLMs) have revolutionized NLP through In-Context Learning
 A prevailing dominance in prompt engineering is that providing more examples yields better performance. Inspired by the work of Tang et al. (The Few Shot Dilemma: Over-prompting Large Language Models), we challenge this assumption for SLMs as well: Unlike their larger counterparts, SLMs suffer more acutely from limited context windows and attention drift.
 
 In this work, we investigate the Few-Shot Dilemma in SLMs. We hypothesize that an effective Few-Shot example selection procedure, considering both relevancy and quantity, enables SLMs to achieve competitive performance while mitigating the effects of limited context windows and attention drift.
-We explore ways to find a ``sweet spot'' ---the \textbf{Pareto frontier}--- where an SLM achieves near-supervised performance using the minimal number of optimally selected examples.
+We explore ways to find a ``sweet spot'' the \textbf{Pareto frontier} where an SLM achieves near-supervised performance using the minimal number of optimally selected examples.
 
 \section{Background}
 
