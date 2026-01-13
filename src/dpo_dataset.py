@@ -24,7 +24,6 @@ class RelevanceDPOPipeline:
         except Exception as e:
             raise FileNotFoundError(f"Could not read file. Error: {e}")
 
-        # Map columns
         if 'type' in df.columns:
             df = df.rename(columns={'problem': 'text', 'type': 'label'})
         elif 'category' in df.columns:
@@ -57,7 +56,6 @@ class RelevanceDPOPipeline:
             batch_indices = selected_indices[i : i + batch_size]
             batch_queries = [self.train_data[idx]['text'] for idx in batch_indices]
             
-            # 1. Retrieve Top-50 Candidates (High Recall)
             query_embs = self.embedder.encode(batch_queries, convert_to_tensor=True)
             batch_hits = util.semantic_search(query_embs, self.corpus_embeddings, top_k=50)
             
@@ -71,13 +69,15 @@ class RelevanceDPOPipeline:
                 
                 for hit in hits:
                     cand_idx = hit['corpus_id']
-                    if cand_idx == query_idx: continue
+                    if cand_idx == query_idx: 
+                        continue
                     
                     candidate = self.train_data[cand_idx]
                     cand_text = candidate['text']
                     cand_label = candidate.get('label', 'Unknown')
                     
-                    if cand_text.strip() == query_text.strip(): continue
+                    if cand_text.strip() == query_text.strip(): 
+                        continue
                     
                     if cand_label == true_label:
                         potential_winners.append(cand_text)
