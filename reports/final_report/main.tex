@@ -1,0 +1,455 @@
+\documentclass{article}
+
+% ---------------------------------------------------------
+% 1. SETUP & PACKAGES
+% ---------------------------------------------------------
+\PassOptionsToPackage{numbers, compress}{natbib}
+
+% [preprint] shows your names. Change to [final] for the final version.
+\usepackage[final]{neurips_2024}
+
+% Remove the conference footer from the first page
+\makeatletter
+\renewcommand{\@noticestring}{}
+\makeatother
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsmath}        % best math environment
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{graphicx}       % for images
+\usepackage{enumitem}       % for cleaner lists
+\usepackage{multirow}
+\usepackage{xcolor}         % color text
+
+
+% ---------------------------------------------------------
+% 2. TITLE & AUTHORS
+% ---------------------------------------------------------
+\title{The Few-shot Dilemma: Over-prompting Large Language Models in Resource-Constrained Environments}
+
+\author{%
+  Amine Mike El Maalouf \\
+  \texttt{amine.el-maalouf@epita.fr} \\
+  \And
+  Cedric Damais \\
+  \texttt{cedric.damais@epita.fr} \\
+  \And
+  Yacine Benihaddadene \\
+  \texttt{yacine.benihaddadene@epita.fr} \\
+  \And
+  Leon Ayral \\
+  \texttt{leon.ayral@epita.fr} \\
+}
+
+\begin{document}
+
+\maketitle
+
+% ---------------------------------------------------------
+% 3. ABSTRACT
+% ---------------------------------------------------------
+
+\begin{abstract}
+Large Language Models (LLMs) have revolutionized NLP through In-Context Learning (ICL). However, a common misconception is ``the more examples, the better.'' Recent research suggests a ``Few-shot Dilemma'': increasing the number of shots can paradoxically lead to diminishing returns or performance degradation. \citep{fewshot2025}. Our project investigates this phenomenon specifically within the realm of Small Language Models (SLMs), such as Llama 3.2 and Phi-3. Unlike massive models, SLMs are constrained by smaller context windows. We aim to evaluate various example selection strategies ---ranging from semantic retrieval to lexical matching--- and systematically vary the number of examples ($K$) to determine the optimal context volume. Our goal is to determine if ``smarter'' example selection strategies can delay the onset of the few-shot dilemma compared to random selection, and identify the threshold where performance degradation begins, optimizing the trade-off between accuracy and inference cost.
+\end{abstract}
+
+\newpage
+% ---------------------------------------------------------
+% 4. SECTIONS
+% ---------------------------------------------------------
+
+\section{Introduction}
+Large Language Models (LLMs) have revolutionized NLP through In-Context Learning (ICL). However, primarily deploying massive models is infeasible for many real-world applications due to privacy, latency, and ressource constraints. This has led to a resurgence of interest in Small Language Models (SLMs).
+
+A prevailing dominance in prompt engineering is that providing more examples yields better performance. Inspired by the work of Tang et al. (The Few Shot Dilemma: Over-prompting Large Language Models), we challenge this assumption for SLMs as well: Unlike their larger counterparts, SLMs suffer more acutely from limited context windows and attention drift.
+
+In this work, we investigate the Few-Shot Dilemma in SLMs. We hypothesize that an effective Few-Shot example selection procedure, considering both relevancy and quantity, enables SLMs to achieve competitive performance while mitigating the effects of limited context windows and attention drift.
+We explore ways to find a ``sweet spot'' ---the \textbf{Pareto frontier}--- where an SLM achieves near-supervised performance using the minimal number of optimally selected examples.
+
+\section{Background}
+
+\subsection{In-Context Learning and Scaling Laws}
+Since the introduction of GPT-3 \citep{brown2020language}, In-Context Learning (ICL) has become the standard for few-shot adaptation by conditioning the model on demonstrations without gradient updates. Early foundational studies suggested that performance generally improves with the number of examples ($K$), although gains are task-dependent and can saturate or fluctuate. Notably, these observations were primarily derived from massive models (e.g., GPT-3 175B) with larger context windows, leaving a gap in understanding how ICL behaves systematically in resource-constrained environments typical of SLMs.
+
+\subsection{Example Selection Strategies}
+While increasing $K$ can help, the quality of examples is paramount. \citet{liu2022makes} demonstrated that retrieving semantically similar examples using k-nearest neighbors (kNN) significantly outperforms random sampling by increasing the semantic similarity between the context and the test query. However, most existing research focuses on maximizing accuracy in large-context settings, often overlooking the trade-off with the strictly limited **context budget** of smaller models.
+
+\subsection{The Challenge of Context Constraints}
+Recent work highlights distinct failure modes in ICL. \citet{lostInTheMiddle2023} identified a "Lost in the Middle" phenomenon where models perform best when relevant information is at the beginning or end of the context, and substantially worse when it is in the middle. This is particularly critical for Small Language Models (SLMs) with restricted context windows (e.g., 2048 tokens). Furthermore, \citet{fewshot2025} explicitly characterize an "over-prompting" dilemma, where adding examples beyond a certain threshold leads to performance degradation due to noise and distraction. \citet{zhao2021calibrate} also highlight the high variance and instability of few-shot learning, necessitating robust selection strategies beyond simple random sampling.
+
+
+
+
+
+\newpage
+\section{Methodology}
+
+
+\subsection{Experiment Setup}
+
+We conducted 3 experiments. For each one, we studied the impact of a thoroughly isolated variable on the evaluated task's metrics in order to draw valid conclusions.
+
+
+\begin{enumerate}
+    \item \textbf{Selector Experiment:} We isolate the example selection strategy to identify the most effective retrieval mechanism. We compare:
+    \begin{itemize}
+        \item \textbf{Random:} The naive baseline.
+        \item \textbf{Semantic:} Using dense embeddings to find contextually similar examples.
+        \item \textbf{Lexical:} Using TF-IDF or BM25 to find keyword overlap.
+        \item \textbf{DPO inspired:} Using a tuned cross-encoder to score relevant examples higher, and conversely score irrelevant ones lower.
+    \end{itemize}
+
+    \item \textbf{Model Experiment:} We fix the selection strategy and vary the model architecture to benchmark SLM capabilities. We evaluate:
+    \begin{itemize}
+        \item \textbf{Target Models:} Phi-3-mini, Llama-3.2 (1B/3B), Mistral, and Qwen.
+        \item \textbf{Objective:} Identify which architecture maximizes score for a given optimized prompt structure.
+    \end{itemize}
+
+    \item \textbf{K-Shot Scaling Experiment:} We fix the optimal model and selector, varying only $K$ to find the optimal context volume:
+    \begin{itemize}
+        \item \textbf{Scaling $K$:} We incrementally increase $K$ until the context window is filled.
+        \item \textbf{Threshold Determination:} We identify the "over-prompting" point where performance degrades.
+        \item \textbf{Pareto Optimization:} We map the trade-off between accuracy and inference cost (tokens).
+    \end{itemize}
+\end{enumerate}
+
+
+
+
+
+\subsection{Evaluated Tasks}
+
+In order to assess the generalizability of our study across different modalities of reasoning, we selected two distinct NLP tasks:
+
+\begin{itemize}
+    \item \textbf{Mathematical Problem Classification:} We utilized the \textbf{MATH dataset} \citep{hendrycksmath2021}. The task involves classifying mathematical word problems into one of 7 categories (e.g., Algebra, Geometry, Number Theory). We used the \texttt{problem} column as the input text and the \texttt{type} column as the target label.
+
+    To rigorously assess the utility of ICL, we established supervised performance ceilings by fine-tuning two variants of each base model using Quantized Low-Rank Adaptation (LoRA):
+    \begin{itemize}
+        \item \textbf{Generative Classification:} Models were fine-tuned to generate the target class label directly as a text sequence (utilizing the Unsloth framework for efficiency).
+        \item \textbf{Discriminative Classification:} We appended a randomly initialized classification head to the model's final hidden state, training only the adapter layers and the head (utilizing the Hugging Face Transformers library).
+    \end{itemize}
+
+    \item \textbf{Named Entity Recognition (NER):} We employed the \texttt{Few-NERD} dataset \citep{ding2021fewnerd}. This task challenges the model to identify and classify fine-grained named entities within a given context, serving as a rigorous test for the model's structure extraction capabilities. For this task, we compared our few-shot results against \textbf{NuNER Zero} \citep{nuner2024}, a state-of-the-art model for zero-shot entity recognition, serving as a strong baseline.
+\end{itemize}
+
+\subsection{DPO Selector Implementation}
+
+\subsubsection{Motivation: The Semantic Gap}
+Standard retrieval methods (e.g., BM25, Bi-Encoders) optimize for \textit{textual similarity}, which serves as an imperfect proxy for \textit{utility} in few-shot classification tasks. A critical limitation observed within the Competition Math dataset is the \textbf{"Topic vs. Difficulty" ambiguity}. For instance, a problem involving geometric shapes might be labeled \texttt{Prealgebra} based on its difficulty level, rather than \texttt{Geometry} based on its topic.
+
+A standard semantic retriever often fetches \texttt{Geometry} examples for such a query due to significant keyword overlap (e.g., "triangle", "angle"). While these examples are semantically similar, they provide the wrong class label to the Small Language Model (SLM), leading to downstream misclassification. To address this, we trained a custom selector using DPO to distinguish between \textit{semantically similar} and \textit{label-correct} examples.
+
+\subsubsection{Data Generation Strategy}
+Our initial approach utilized an "Oracle" method (using Phi-3 to judge example helpfulness), but this resulted in severe class imbalance, causing the model to collapse into predicting \texttt{Algebra} for the majority of queries. Consequently, we pivoted to a \textbf{Supervised Contrastive Strategy} leveraging "Hard Negatives" to explicitly teach the model discrimination boundaries.
+
+We constructed a preference dataset by generating embeddings for the training subset and retrieving the top 50 semantic neighbors for each query. These neighbors were classified based on their ground-truth labels (Figure \ref{fig:dpo_dataset}).
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{assets/DPO-Dataset-Creation.png}
+    \caption{The Relevance DPO pipeline. Semantic neighbors are retrieved and classified: those matching the query label become "Potential Winners," while those with mismatching labels become "Hard Negatives."}
+    \label{fig:dpo_dataset}
+\end{figure}
+
+For each query $q$ with label $y_{true}$, we constructed triplets $(q, x_w, x_l)$ as follows:
+\begin{itemize}
+    \item \textbf{Chosen ($x_w$):} The candidate with the highest semantic similarity to $q$ that \textit{shares} the label $y_{true}$.
+    \item \textbf{Rejected ($x_l$):} A "Hard Negative" candidate one with high semantic similarity to $q$ but belonging to a \textit{different} category ($y_{false}$).
+\end{itemize}
+
+This data construction forces the model to learn that \textit{keyword overlap is insufficient} if the underlying category does not match. We generated a balanced dataset of 1,000 such pairs using Stratified Sampling across all 7 categories.
+
+\subsubsection{Training Configuration}
+We fine-tuned a Cross-Encoder model (\texttt{ms-marco-MiniLM-L-6-v2}) to maximize the margin between the chosen and rejected examples.
+
+\textbf{Objective Function:} We minimized the negative log-likelihood of the preferred example:
+\begin{equation}
+    \mathcal{L}_{DPO} = - \log \sigma \left( r(q, x_w) - r(q, x_l) \right)
+\end{equation}
+where $r(q, x)$ represents the scalar score output by the Cross-Encoder.
+
+\textbf{Hyperparameters:} The model was trained for 3 epochs with a learning rate of $2e^{-5}$ and a batch size of 16, utilizing Mixed Precision (FP16) for efficiency.
+
+\subsubsection{Training Results}
+The training process yielded robust results. By the end of Epoch 1, the model achieved a validation accuracy of \textbf{74.5\%} on the preference task. By Epoch 3, the model reached \textbf{90\% accuracy}, demonstrating that it successfully learned to discriminate between "helpful" matches and "distractor" hard negatives.
+
+\subsubsection{Inference Strategy: Hybrid Scoring}
+During evaluation, we observed that using the DPO score alone acted as a "harsh filter," removing semantically relevant examples that the SLM relied on for lexical priming. To mitigate this, we implemented a \textbf{Hybrid Scoring} mechanism for final retrieval:
+\begin{equation}
+    Score_{final} = \alpha \cdot Score_{semantic} + (1 - \alpha) \cdot P(Valid | q, x)_{DPO}
+\end{equation}
+We empirically found that $\alpha=0.6$ provided the optimal balance, retaining high keyword overlap (Semantic) while penalizing examples that belonged to the wrong category (DPO).
+
+The classification logic is as follows:
+\begin{itemize}
+    \item \textbf{Potential Winners (Chosen):} Neighbors that share the same label as the query. We select the highest-similarity example from this set.
+    \item \textbf{Hard Negatives (Rejected):} Neighbors that exhibit high semantic similarity but belong to a different category. We select the top three examples from this set.
+\end{itemize}
+
+The final dataset consists of triplets $(x, y_{chosen}, y_{rejected})$. By training on these pairs, the shot selector learns to distinguish between truly relevant examples and deceptive distractors, ensuring that the selected few-shot examples reinforce the correct reasoning pattern.
+
+
+\section{Experiments}
+
+\subsection{Zero-Shot Baseline Comparison}
+To establish a performance baseline, we first evaluated all candidate Small Language Models (SLMs) in a zero-shot setting. In this configuration, models were presented with the math problem and the list of seven categories, with no prior examples provided. This tests the models' intrinsic knowledge and their ability to follow classification instructions without in-context guidance.
+
+Figure \ref{fig:zero_shot_baseline} illustrates the comparative accuracy of the selected models (Llama-3-8B, Mistral-7B, Phi-3-Mini, Gemma-7B, and Qwen2-7B).
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{assets/zero_shot_baseline_comparison.png}
+    \caption{Zero-shot classification accuracy across different SLM architectures. Llama-3-8B demonstrates the strongest intrinsic understanding of the task taxonomy.}
+    \label{fig:zero_shot_baseline}
+\end{figure}
+\subsubsection{Results}
+\begin{table}[htbp]
+    \centering
+    \caption{Zero-Shot Classification F1 weighted on Competition Math Dataset}
+    \label{tab:zero_shot_results}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Weighted} \\
+        \midrule
+        Qwen3-8b & \textbf{0.51} &\textbf{0.402} \\
+        Qwen2-7B & 0.49 \textbf{} &0.380 \\
+        Llama-3-8B & 0.46 & 0.341 \\
+        Mistral-7B & 0.43 &0.347 \\
+        Gemma-7B & 0.37 &0.369 \\
+        Phi-3-Mini & 0.33 &0.268 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Analysis of Zero-Shot Performance}
+The results highlight significant variance in capability across model families, with the Qwen series demonstrating a clear advantage:
+
+\begin{itemize}
+    \item \textbf{Qwen3-8b (Top Performer):} Achieving the highest accuracy of \textbf{0.51}, this model's superiority is attributed to its architecture as a "thinking model." Unlike standard instruction-tuned models, Qwen3 incorporates enhanced reasoning capabilities (implicit Chain-of-Thought), allowing it to better parse the nuance between overlapping categories like \texttt{Prealgebra} and \texttt{Geometry} before making a final classification.
+    \item \textbf{Qwen2-7B:} Even the previous generation Qwen model (0.49) outperformed Llama-3, suggesting that the Qwen family's pre-training corpus has a stronger alignment with mathematical reasoning tasks.
+    \item \textbf{Llama-3-8B:} While not the leader, it remains highly competitive (0.46), demonstrating robust intrinsic knowledge. However, it lacked the specialized reasoning depth observed in the Qwen series for this specific domain.
+    \item \textbf{Phi-3-Mini:} Despite its smaller size (3.8B), it achieved 0.33, showing surprising efficiency. This validates the efficacy of training on synthetic "textbook-quality" data, though it struggled to match the zero-shot generalization of the 7B+ parameter models.
+\end{itemize}
+
+These zero-shot baselines serve as the control group for our subsequent few-shot experiments. The gap between these scores and the few-shot results quantifies the value of the retrieval strategies.
+
+\subsection{Supervised Baseline Comparison}
+To measure the maximum potential performance of Small Language Models (SLMs) on this task, we established supervised fine-tuning (SFT) ceilings. This comparison defines the "Adaptation Headroom"—the performance gap between a model's intrinsic zero-shot capabilities and its fully fine-tuned potential.
+
+Table \ref{tab:supervised_results} compares the zero-shot baseline against the two fine-tuned variants: Generative (Unsloth) and Discriminative (Classification Head).
+
+\begin{table}[htbp]
+    \centering
+    \caption{Supervised Fine-Tuning Performance Ceilings}
+    \label{tab:supervised_results}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{Zero-Shot} & \textbf{SFT (Discrim)} & \textbf{SFT (Gen)} & \textbf{Gain (\%)} \\
+        \midrule
+        Qwen2-7B & 0.49 & 0.85 & 0.76 & +73.5\% \\
+        Llama-3-8B & 0.46 & 0.83 & 0.79 & +80.4\% \\
+        Mistral-7B & 0.43 & 0.81 & 0.82 & +90.7\% \\
+        Gemma-7B & 0.37 & N/A & 0.75 & +102.7\% \\
+        Phi-3-Mini & 0.33 & N/A & 0.67 & +103.0\% \\
+        \bottomrule
+    \end{tabular}
+    \vspace{0.1cm}
+
+    \small{\textit{*SFT (Gen): Unsloth Generative Fine-tuning, SFT (Discrim): HuggingFace Classification Head.}}
+\end{table}
+
+\subsubsection{Quantifying the Adaptation Headroom}
+The results indicate a substantial gap between intrinsic knowledge and task-specific optimization. All models showed significant responsiveness to fine-tuning, with \textbf{Phi-3-Mini} demonstrating the highest plasticity (+103.0\% relative gain). We notably observed that:
+\begin{itemize}
+    \item \textbf{Discriminative Superiority:} The Discriminative approach (Classification Head) consistently yielded higher accuracy than generative fine-tuning (e.g., Qwen2 achieved 0.85 vs. 0.76). This suggests that constraining the SLM to a fixed classification head effectively mitigates the "formatting drift" often observed in generative outputs.
+    \item \textbf{Zero-Shot Correlation:} Models with stronger zero-shot baselines generally achieved higher SFT peaks, confirming that pre-training quality dictates the ultimate ceiling regardless of the adaptation method.
+\end{itemize}
+
+These supervised metrics serve as the "Gold Standard" for our subsequent few-shot experiments. Our goal is to determine how closely ICL strategies can approach these SFT ceilings without the cost of parameter updates.
+
+
+
+\subsection{Selector Experiment}
+To isolate the impact of retrieval quality, we fixed the inference model to \texttt{Llama-3-8B} and the number of shots to $k=3$. We then evaluated five distinct selection strategies to measure how the quality of in-context examples affects downstream classification accuracy.
+
+The results are summarized in Table \ref{tab:selector_results}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Performance of Shot Selection Strategies (Llama-3-8B, $k=3$)}
+    \label{tab:selector_results}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Strategy} & \textbf{Accuracy} & \textbf{F1 (Weighted)} & \textbf{Avg Latency (s)} & \textbf{Token Efficiency} \\
+        \midrule
+        Random & 0.47 & 0.38 & 0.32 & Baseline \\
+        Lexical (BM25) & 0.70 & 0.69 & 0.31 & High \\
+        Semantic (Bi-Encoder) & 0.75 & 0.76 & \textbf{0.30} & High \\
+        Cross-Encoder (Standard) & 0.69 & 0.68 & 0.95 & Low \\
+        \textbf{DPO (Hybrid)} & \textbf{0.77} & \textbf{0.72} & 0.95 & Medium \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Analysis of Selector Performance}
+The experiment yielded several critical insights regarding in-context learning for SLMs:
+
+\begin{itemize}
+    \item \textbf{Random Selection Failure:} Random shots provided negligible benefit over the zero-shot baseline (0.47 vs. 0.46). This confirms that for classification tasks, \textit{irrelevant} examples act as noise rather than guidance.
+
+    \item \textbf{The "Lexical Priming" Effect:} Both Lexical (0.70) and Semantic (0.75) strategies yielded massive improvements. This suggests that Llama-3-8B relies heavily on \textit{surface-level feature matching}. When the context contains keywords (e.g., "triangle") associated with the target label, the model's accuracy improves dramatically.
+
+    \item \textbf{Standard Cross-Encoder Regression:} Interestingly, the off-the-shelf Cross-Encoder (0.69) performed \textit{worse} than the simple Semantic retriever. We hypothesize that the standard re-ranker, trained on general passage retrieval (MS MARCO), aggressively filtered out examples that were lexically similar but not "relevant" in a generic sense, inadvertently stripping away the keyword cues the SLM needed.
+
+    \item \textbf{DPO Hybrid Superiority:} Our custom DPO selector (0.77) achieved the highest overall accuracy, outperforming the strong Semantic baseline. By using the \textbf{Hybrid Scoring} ($\alpha=0.6$), the system successfully combined the best of both worlds:
+    \begin{enumerate}
+        \item It retained high-similarity examples (Lexical Priming).
+        \item It used the DPO signal to filter out "Hard Negatives"—examples that looked similar but belonged to the wrong category.
+    \end{enumerate}
+
+    \item \textbf{The Latency Trade-off:} While DPO achieved the highest accuracy, it incurred a significant "Alignment Tax," increasing latency from $\approx 0.30$s to $\approx 0.95$s. This confirms our hypothesis that while learned selection is more effective, simple semantic retrieval remains the Pareto-optimal choice for latency-sensitive applications.
+\end{itemize}
+
+\subsection{Model Sensitivity Analysis}
+To understand how different architectures respond to optimized retrieval, we evaluated six distinct SLMs using both the baseline \textbf{Semantic (Bi-Encoder)} and our proposed \textbf{DPO (Hybrid)} strategies. We focused primarily on the \textbf{F1-Weighted} score, as it accounts for the class imbalance inherent in the dataset.
+
+Figure \ref{fig:model_sensitivity} visualizes the performance shift between strategies, and Table \ref{tab:model_comparison} details the exact metrics.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1.0\textwidth]{assets/f1_weighted_semantic_vs_dpo.png}
+    \caption{Comparison of F1-Weighted scores across different model families using Semantic vs. DPO Hybrid selection strategies. The Qwen family (V2 and V3) consistently benefits from DPO, while Western heuristic models (Mistral) show regression.}
+    \label{fig:model_sensitivity}
+\end{figure}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Impact of Selection Strategy on Downstream Model Performance ($k=3$)}
+    \label{tab:model_comparison}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{Strategy} & \textbf{Accuracy} & \textbf{F1 (Weighted)} & \textbf{Impact of DPO} \\
+        \midrule
+        \multirow{2}{*}{\textbf{Qwen3-8B (Reasoning)}} & Semantic & 0.77 & 0.791 & \multirow{2}{*}{\textcolor{teal}{+3.4\%}} \\
+                                                         & DPO & \textbf{0.80} & \textbf{0.825} & \\
+        \midrule
+        \multirow{2}{*}{\textbf{Qwen2-7B}} & Semantic & 0.73 & 0.735 & \multirow{2}{*}{\textcolor{teal}{+4.6\%}} \\
+                                           & DPO & 0.75 & 0.781 & \\
+        \midrule
+        \multirow{2}{*}{\textbf{Llama-3-8B}} & Semantic & 0.75 & 0.748 & \multirow{2}{*}{\textcolor{gray}{+0.4\%}} \\
+                                             & DPO & 0.76 & 0.752 & \\
+        \midrule
+        \multirow{2}{*}{\textbf{Mistral-7B}} & Semantic & 0.73 & \textbf{0.725} & \multirow{2}{*}{\textcolor{red}{-4.1\%}} \\
+                                             & DPO & 0.70 & 0.684 & \\
+        \midrule
+        \multirow{2}{*}{\textbf{Gemma-7B}} & Semantic & 0.64 & 0.639 & \multirow{2}{*}{\textcolor{teal}{+2.7\%}} \\
+                                           & DPO & 0.68 & 0.666 & \\
+        \midrule
+        \multirow{2}{*}{\textbf{Phi-3-Mini}} & Semantic & 0.18 & 0.203 & \multirow{2}{*}{\textcolor{teal}{+18.6\%}} \\
+                                             & DPO & 0.38 & 0.389 & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Analysis: The "U-Shaped" Benefit Curve}
+The results reveal a fascinating non-linear relationship between model capability and retrieval strategy effectiveness:
+
+\begin{itemize}
+    \item \textbf{The Qwen Family Advantage (Qwen2 \& Qwen3):} Both generations of the Qwen architecture demonstrated significant gains with DPO selection (+4.6\% and +3.4\% respectively). Qwen2-7B's improvement is particularly notable, as it leaped from a baseline similar to Mistral (0.73) to a highly competitive score (0.78). This suggests that the Qwen training objective aligns better with logical consistency (Validity) than with surface-level keywords.
+
+    \item \textbf{Reasoning Models Thrive:} The "Thinking Model," Qwen3-8B, achieved the highest overall performance (\textbf{F1: 0.825}). DPO selection provided the necessary edge to push this model past the 80\% accuracy barrier, confirming that reasoning-heavy architectures benefit from the reduced noise and higher category relevance provided by our selector.
+
+    \item \textbf{The "Safety Net" for Weaker Models (Phi-3, Gemma):} The smaller models saw the largest relative gains, with Phi-3-Mini's score nearly doubling (+18.6\%). These models are easily confused by "Distractors" (semantically similar but wrong-label examples). The DPO selector acts as a critical safety filter, removing these confusing shots and stabilizing the model's output.
+
+    \item \textbf{The "Alignment Tax" on Heuristic Models (Mistral):} In contrast, Mistral-7B regressed (-4.1\%) when using DPO. We hypothesize that Mistral relies heavily on lexical heuristics ("lexical priming"). By replacing "keyword-rich" neighbors with "category-correct" neighbors, the DPO selector inadvertently removed the surface-level cues the model used to "guess" the classification.
+\end{itemize}
+
+DPO selection is not a universal fix; it is a specialized tool that amplifies the performance of \textbf{high-capacity reasoning models} (like Qwen) and stabilizes \textbf{low-capacity models} (like Phi-3), but may disrupt models that rely on simple heuristic pattern matching.
+
+\subsection{Impact of Shot Count (\texorpdfstring{$k$}{k})}
+Finally, we analyzed the sensitivity of the DPO strategy to the number of few-shot examples ($k$). While increasing $k$ generally provides more context, it also consumes context window space and can introduce noise. We tested $k \in \{1, 3, 5, 10, 15, 20, 25\}$.
+
+Figure \ref{fig:k_shot_analysis} illustrates the trajectories for the different model architectures.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{assets/phase5_scaling_scatter.png}
+    \caption{Accuracy vs. Shot Count ($k$). While standard models (Llama-3, Gemma) scale effectively up to $k=20$, the reasoning-heavy Qwen3-8B peaks early at $k=3$ and degrades rapidly thereafter.}
+    \label{fig:k_shot_analysis}
+\end{figure}
+
+\subsubsection{Analysis of Context Scaling}
+Three distinct behaviors emerged from the data:
+
+\begin{enumerate}
+    \item \textbf{Reasoning Saturation (Qwen3-8B):}
+    The "Thinking Model" exhibited a unique \textbf{early peak} at $k=3$ (Accuracy 0.82), followed by a sharp degradation as $k$ increased (dropping to 0.64 at $k=25$).
+    \textit{Hypothesis:} Since Qwen3 generates implicit Chain-of-Thought tokens, providing too many input examples may overcrowd its context window or interfere with its internal reasoning generation process. It performs best with a "minimalist" prompt that establishes the pattern without overwhelming the reasoning engine.
+
+    \item \textbf{Scalable Learners (Llama-3, Gemma):}
+    Models like Llama-3-8B and Gemma-7B demonstrated robust scalability. Llama-3 maintained or improved performance up to $k=20$ (Peak 0.77). These models appear to treat few-shot examples purely as data points for pattern matching, benefitting from the increased statistical signal provided by a larger retrieval set.
+
+    \item \textbf{Context Collapse (Phi-3-Mini):}
+    The 3.8B parameter model struggled significantly with larger $k$ values. While it peaked at $k=3$ (0.39), its performance collapsed to near-zero (0.01) at $k=10$. This indicates a hard limit on the model's effective context retention capabilities; when overloaded with examples, it loses track of the original instruction entirely.
+\end{enumerate}
+
+\textbf{Optimal Configuration:} Based on these findings, we identified $k=3$ as the global optimal setting. It maximizes performance for the high-performing Reasoning models (Qwen3) while remaining within the safe effective context window for smaller models (Phi-3), all while keeping inference latency low.
+
+\section{Discussion}
+
+\subsection{Global Benchmark: The Adaptation Efficiency}
+To rigorously assess the utility of our proposed DPO Selection strategy, we consolidate our findings into a global benchmark. Table \ref{tab:global_benchmark} compares the performance of the models across three distinct adaptation stages:
+\begin{enumerate}
+    \item \textbf{Intrinsic (Zero-Shot):} The model's baseline reasoning measurement.
+    \item \textbf{In-Context (DPO, $K=3$):} Our optimized few-shot intervention.
+    \item \textbf{Supervised (SFT):} The theoretical performance ceiling achieved through parameter updates.
+\end{enumerate}
+
+We define \textbf{Recovery Rate} as the percentage of the "SFT Headroom" that is recovered purely through in-context learning:
+\begin{equation}
+    \text{Recovery Rate} = \frac{\text{ICL}_{acc} - \text{Zero}_{acc}}{\text{SFT}_{acc} - \text{Zero}_{acc}}
+\end{equation}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Global Performance Benchmark: Comparing Intrinsic, In-Context, and Supervised Capabilities. \textbf{Recovery Rate} indicates how much of the fine-tuning gap is closed by using just 3 optimized examples.}
+    \label{tab:global_benchmark}
+    \begin{tabular}{lccccc}
+        \toprule
+        \multirow{2}{*}{\textbf{Model}} & \textbf{Intrinsic} & \textbf{In-Context} & \textbf{Supervised} & \textbf{Absolute} & \textbf{Recovery} \\
+        & (Zero-Shot) & (DPO, $K=3$) & (Ceiling) & \textbf{Gain (ICL)} & \textbf{Rate (\%)} \\
+        \midrule
+        \textbf{Qwen3-8B} & 0.51 & 0.80 & [VAL] & +0.29 & [VAL]\% \\
+        \textbf{Qwen2-7B} & 0.49 & 0.75 & 0.85 & +0.26 & 72.2\% \\
+        \textbf{Llama-3-8B} & 0.46 & 0.76 & 0.83 & +0.30 & 81.1\% \\
+        \textbf{Mistral-7B} & 0.43 & 0.70 & 0.81 & +0.27 & 71.1\% \\
+        \textbf{Gemma-7B} & 0.37 & 0.68 & 0.75 & +0.31 & 81.6\% \\
+        \textbf{Phi-3-Mini} & 0.33 & 0.38 & 0.67 & +0.05 & 14.7\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The benchmark reveals that for capable models like Llama-3 and Gemma, our optimized few-shot strategy recovers over \textbf{80\%} of the performance gains associated with full fine-tuning. This suggests that for these architectures, specialized ICL strategies offer a highly efficient alternative to expensive training pipelines. Conversely, smaller models like Phi-3-Mini show a low recovery rate (14.7\%), indicating that their limitations are structural and require parameter updates to overcome.
+
+\section{Conclusion}
+This study systematically investigated the "Few-Shot Dilemma" in Small Language Models, challenging the prevailing notion that simply increasing context volume guarantees better performance. Through our targeted experiments on Competitive Math classification, we established three critical findings regarding the deployment of SLMs in resource-constrained environments.
+
+First, we demonstrated that \textbf{quality outweighs quantity}. Naive random selection provided negligible benefits over zero-shot baselines, whereas our proposed DPO-Hybrid selector, which balances semantic similarity with label correctness, achieved state-of-the-art results. This confirms that for SLMs, the \textit{relevance} of the context is a stronger predictor of success than the \textit{volume} of the context.
+
+Second, we identified a \textbf{divergence in architectural needs}. We observed that "Reasoning Models" (like Qwen3) exhibit an early performance peak ($K=3$) and degrade rapidly with more examples, effectively suffering from "over-prompting" due to interference with their internal chain-of-thought processes. In contrast, "Heuristic Models" (like Llama-3) treat few-shot examples as statistical data points, scaling robustly up to $K=20$. This suggests that prompt engineering strategies must be tailored not just to the task, but to the specific cognitive architecture of the model.
+
+Finally, we quantified the \textbf{Efficiency Frontier}. Our global benchmark revealed that for capable 7B-parameter models, an optimized selection of just $K=3$ examples can recover over \textbf{80\%} of the performance gain typically achieved through expensive supervised fine-tuning. This effectively identifies a "Pareto Optimal" sweet spot: by using a smart, low-latency selector, practitioners can achieve near-supervised performance without the high computational cost of training or the high inference latency of long-context prompting.
+
+In conclusion, the "Few-Shot Dilemma" is not an inevitable barrier but a manageable trade-off. By shifting focus from context expansion to context curation, we can unlock the full potential of Small Language Models, making them viable, efficient alternatives to their massive counterparts.
+
+\bibliographystyle{unsrtnat}
+\bibliography{custom}
+
+\end{document}
