@@ -30,9 +30,9 @@ def resolve_path(provided_path, target_name):
             
     return provided_path # Return original to fail with clear error if not found
 
-def run_scaling_experiment(sample_size, dpo_path_arg):
+def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
     # Fixed Parameters
-    MODELS = ['llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini', 'qwen2:7b', 'qwen3:8b']
+    MODELS = ['deepseek-r1:8b']
     STRATEGY = 'dpo'
     
     # Resolve Paths
@@ -58,6 +58,7 @@ def run_scaling_experiment(sample_size, dpo_path_arg):
         print(f"Search Paths - DPO Model: {DPO_PATH}")
         print(f"K Values: {K_VALUES}")
         print(f"Sample Size: {sample_size}")
+        print(f"Batch Size: {batch_size}")
     
         if not os.path.exists(DPO_PATH):
             print(f"CRITICAL ERROR: DPO Model path not found: {DPO_PATH}")
@@ -80,7 +81,11 @@ def run_scaling_experiment(sample_size, dpo_path_arg):
                 pipeline.load_data()
                 
                 # Evaluate returns: accuracy, f1_weighted, f1_macro, avg_prompt_tokens, avg_completion_tokens, avg_latency
-                accuracy, f1_w, f1_m, avg_prompt, avg_comp, avg_latency = pipeline.evaluate(sample_size=sample_size)
+                print(f"    Processing {sample_size} samples in batches of {batch_size}...")
+                accuracy, f1_w, f1_m, avg_prompt, avg_comp, avg_latency = pipeline.evaluate(
+                    sample_size=sample_size,
+                    batch_size=batch_size
+                )
                 
                 result_entry = {
                     "K": k,
@@ -130,7 +135,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Phase 5 Scaling Experiment")
     parser.add_argument("--sample_size", type=int, default=100, help="Number of samples per K")
     parser.add_argument("--dpo_path", type=str, default="dpo_selector_model", help="Path to DPO model")
+    parser.add_argument("--batch_size", type=int, default=10, help="Batch size for processing samples")
     
     args = parser.parse_args()
     
-    run_scaling_experiment(args.sample_size, args.dpo_path)
+    run_scaling_experiment(args.sample_size, args.dpo_path, args.batch_size)

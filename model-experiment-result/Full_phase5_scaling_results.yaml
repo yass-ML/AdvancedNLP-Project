@@ -278,6 +278,7 @@
   Model: phi3:mini
   Strategy: dpo
   Status: Success
+
 - K: 1
   Accuracy: 0.71
   F1_Weighted: 0.69501998001998
@@ -348,6 +349,7 @@
   Model: qwen2:7b
   Strategy: dpo
   Status: Success
+
 - K: 1
   Accuracy: 0.72
   F1_Weighted: 0.7378871448962727
@@ -418,3 +420,4 @@
   Model: qwen3:8b
   Strategy: dpo
   Status: Success
+  

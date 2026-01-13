@@ -110,8 +110,13 @@ class MetricsPipeline:
             print(f"Error querying model: {e}")
             return "Error", 0, 0
 
-    def evaluate(self, sample_size=None):
-        """Runs the pipeline on the dataset and computes accuracy."""
+    def evaluate(self, sample_size=None, batch_size=1):
+        """Runs the pipeline on the dataset and computes accuracy.
+        
+        Args:
+            sample_size: Number of samples to evaluate (None for all)
+            batch_size: Number of samples to process before showing progress (default=1)
+        """
         if sample_size:
             data = self.df.sample(n=sample_size, random_state=42)
         else:
@@ -127,7 +132,8 @@ class MetricsPipeline:
         total_latency = 0.0
         
         print("Starting classification...")
-        for i, row in data.iterrows():
+        batch_count = 0
+        for idx, (i, row) in enumerate(data.iterrows()):
             problem = row['problem']
             true_label = row.get('type', row.get('category', 'Unknown')) # robust column access
             
@@ -148,7 +154,13 @@ class MetricsPipeline:
                 correct += 1
             total += 1
             
-            print(f"[{i}] True: {true_label} | Pred: {predicted_label} | Correct: {is_correct}")
+            # Show progress per batch
+            if (idx + 1) % batch_size == 0:
+                batch_count += 1
+                batch_accuracy = correct / total if total > 0 else 0
+                print(f"Batch {batch_count} ({idx + 1}/{len(data)}): Accuracy={batch_accuracy:.2%}, Avg Latency={total_latency/total:.2f}s")
+            else:
+                print(f"[{i}] True: {true_label} | Pred: {predicted_label} | Correct: {is_correct}")
 
         accuracy = correct / total if total > 0 else 0
         f1_weighted = f1_score(y_true, y_pred, average='weighted', zero_division=0)
