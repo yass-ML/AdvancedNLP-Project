@@ -38,6 +38,16 @@
   Strategy: semantic
   K: 3
   Status: Success
+- Model: qwen2:7b
+  Accuracy: 0.73
+  F1 (Weighted): 0.7353578304048892
+  F1 (Macro): 0.6347116119174943
+  Avg Prompt Tokens: 408.02
+  Avg Completion Tokens: 4.97
+  Avg Latency: 0.3992161822319031
+  Strategy: semantic
+  K: 3
+  Status: Success
 
 - Accuracy: 0.77
   Avg Completion Tokens: 1970.61
@@ -69,6 +79,7 @@
   F1 (Weighted): 0.6842642220591906
   K: 3
   Model: mistral:7b
+
   Status: Success
   Strategy: dpo
   
@@ -99,7 +110,7 @@
   Avg Latency: 0.9779526829719544
   Avg Prompt Tokens: 467.67
   F1 (Macro): 0.7708771170623868
-  F1 (Weighted): 0.7409893540717762
+  F1 (Weighted): 0.7809893540717762
   K: 3
   Model: qwen2:7b
   Status: Success
