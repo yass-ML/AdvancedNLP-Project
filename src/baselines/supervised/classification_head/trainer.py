@@ -231,15 +231,19 @@ def train(
 
         # Extract the actual weight from potentially PEFT-wrapped module
         def get_classifier_weight(layer):
-            """Extract the actual weight tensor from a potentially PEFT-wrapped layer."""
-            if hasattr(layer, 'original_module'):
-                # PEFT wrapped module
-                return {'weight': layer.original_module.weight.data.clone()}
-            elif hasattr(layer, 'modules_to_save'):
-                # Another PEFT wrapping style
+            """Extract the actual TRAINED weight tensor from a potentially PEFT-wrapped layer."""
+            # IMPORTANT: Check modules_to_save FIRST - this contains the TRAINED weights!
+            # original_module contains the ORIGINAL (untrained) weights
+            if hasattr(layer, 'modules_to_save') and 'default' in layer.modules_to_save:
+                # PEFT ModulesToSaveWrapper - get the TRAINED weights
+                print(f"  Extracting from modules_to_save['default'] (trained weights)")
                 return {'weight': layer.modules_to_save['default'].weight.data.clone()}
+            elif hasattr(layer, 'original_module'):
+                # Fallback - but this is likely untrained!
+                print(f"  WARNING: Extracting from original_module (may be untrained!)")
+                return {'weight': layer.original_module.weight.data.clone()}
             else:
-                # Regular module
+                # Regular module (non-PEFT)
                 return {'weight': layer.weight.data.clone()}
 
         if hasattr(base_model, 'score'):
