@@ -6,12 +6,18 @@ Loads a fine-tuned classification model and evaluates on test set.
 Usage:
     python -m src.baselines.supervised.classification_head.evaluate \
         --model_path fine_tunings/classification_head/gemma_2b_math
+
+    # Evaluate ALL models in fine_tunings/classification_head
+    python -m src.baselines.supervised.classification_head.evaluate
 """
 
 import argparse
 import json
 import time
+import os
 from pathlib import Path
+import yaml
+import gc  # Added for memory cleanup
 
 import torch
 import numpy as np
@@ -21,6 +27,7 @@ from sklearn.metrics import (
     precision_recall_fscore_support,
     classification_report,
     confusion_matrix,
+    f1_score,
 )
 
 from .config import load_config, get_config
@@ -102,6 +109,7 @@ def evaluate_model(
     precision, recall, f1, support = precision_recall_fscore_support(
         all_labels, all_predictions, average="weighted", zero_division=0
     )
+    f1_macro = f1_score(all_labels, all_predictions, average="macro", zero_division=0)
 
     # Per-class metrics
     precision_per_class, recall_per_class, f1_per_class, _ = precision_recall_fscore_support(
@@ -121,6 +129,7 @@ def evaluate_model(
         "precision": float(precision),
         "recall": float(recall),
         "f1": float(f1),
+        "f1_macro": float(f1_macro),
         "num_samples": num_samples,
         "total_inference_time_seconds": float(total_time),
         "avg_time_per_sample_ms": float(avg_time_per_sample * 1000),
@@ -138,58 +147,36 @@ def evaluate_model(
     return results, all_predictions, all_labels, id2label
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Evaluate a fine-tuned classification model"
-    )
-
-    parser.add_argument(
-        "--model_path",
-        type=str,
-        required=True,
-        help="Path to the fine-tuned model",
-    )
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        default=None,
-        help="Override dataset path (uses training config if not provided)",
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=16,
-        help="Batch size for inference",
-    )
-    parser.add_argument(
-        "--output_file",
-        type=str,
-        default=None,
-        help="Path to save evaluation results JSON",
-    )
-
-    args = parser.parse_args()
+def evaluate_single_model(model_path, dataset_override=None, batch_size=16, output_file=None):
+    """
+    Evaluates a single model at the specified path.
+    """
+    print(f"\nProcessing Model: {model_path}")
 
     # Load config
     try:
-        config = load_config(args.model_path)
-        print(f"Loaded config from {args.model_path}")
+        config = load_config(model_path)
+        print(f"Loaded config from {model_path}")
 
-        if args.dataset:
-            config.dataset_path = args.dataset
+        if dataset_override:
+            config.dataset_path = dataset_override
 
     except FileNotFoundError:
-        print(f"No config found at {args.model_path}. Creating default config.")
-        if args.dataset is None:
-            args.dataset = "qwedsacf/competition_math"
+        print(f"No config found at {model_path}. Creating default config.")
+        if dataset_override is None:
+            dataset_override = "qwedsacf/competition_math"
         config = get_config(
-            model_name=args.model_path,
-            dataset_path=args.dataset,
+            model_name=model_path,
+            dataset_path=dataset_override,
         )
 
     # Load model
-    print(f"Loading model from {args.model_path}...")
-    model, tokenizer = load_model_for_inference(args.model_path, config)
+    print(f"Loading model from {model_path}...")
+    try:
+        model, tokenizer = load_model_for_inference(model_path, config)
+    except Exception as e:
+        print(f"Error loading model from {model_path}: {e}")
+        return
 
     # Load test dataset
     print(f"Loading dataset: {config.dataset_path}")
@@ -207,12 +194,12 @@ def main():
     # Evaluate
     print("\nRunning evaluation...")
     results, predictions, labels, id2label = evaluate_model(
-        model, tokenizer, test_dataset, config, args.batch_size
+        model, tokenizer, test_dataset, config, batch_size
     )
 
     # Print results
     print("\n" + "=" * 60)
-    print("EVALUATION RESULTS")
+    print(f"EVALUATION RESULTS: {model_path}")
     print("=" * 60)
     print(f"Accuracy:  {results['accuracy']:.4f}")
     print(f"Precision: {results['precision']:.4f}")
@@ -249,10 +236,10 @@ def main():
         print(row_str)
 
     # Save results
-    if args.output_file:
-        output_path = Path(args.output_file)
+    if output_file:
+        output_path = Path(output_file)
     else:
-        output_path = Path(args.model_path) / "evaluation_results.json"
+        output_path = Path(model_path) / "evaluation_results.json"
 
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
@@ -264,6 +251,128 @@ def main():
         f.write(report)
     print(f"Classification report saved to {report_path}")
 
+    # Save to YAML (Requested Format) - Local
+    yaml_path = output_path.parent / "evaluation_results.yaml"
+
+    # Construct record
+    yaml_record = {
+        "Model": config.model_name,
+        "Dataset": config.dataset_path,
+        "Finetune": "classification head classification finetune",
+        "FineTuned_modules": config.target_modules + ["score"] if config.use_lora else "all",
+        "Accuracy": float(results["accuracy"]),
+        "Precision": float(results["precision"]),
+        "Recall": float(results["recall"]),
+        "F1_Weighted": float(results["f1"]),
+        "F1_Macro": float(results["f1_macro"]),
+        "Avg_Completion_Tokens": "N/A", # Not applicable for classification head
+        "Avg_Latency_Seconds": float(results["avg_time_per_sample_ms"] / 1000),
+        "Task": "FineTuned classification"
+    }
+
+    # Load existing to append
+    existing_data = []
+    if yaml_path.exists():
+        try:
+            with open(yaml_path, "r") as f:
+                existing_data = yaml.safe_load(f) or []
+                if not isinstance(existing_data, list):
+                    existing_data = [existing_data]
+        except Exception as e:
+            print(f"Warning: Could not read existing YAML: {e}")
+
+    existing_data.append(yaml_record)
+
+    with open(yaml_path, "w") as f:
+        yaml.dump(existing_data, f, sort_keys=False)
+
+    print(f"Results appended to {yaml_path}")
+
+    # Save to Central YAML
+    central_yaml_path = Path("fine_tunings/evaluation_results.yaml")
+
+    # Load existing to append
+    central_data = []
+    if central_yaml_path.exists():
+        try:
+            with open(central_yaml_path, "r") as f:
+                central_data = yaml.safe_load(f) or []
+                if not isinstance(central_data, list):
+                    central_data = [central_data]
+        except Exception as e:
+            print(f"Warning: Could not read central YAML: {e}")
+
+    central_data.append(yaml_record)
+
+    # Ensure directory exists
+    central_yaml_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(central_yaml_path, "w") as f:
+        yaml.dump(central_data, f, sort_keys=False)
+
+    print(f"Results appended to {central_yaml_path}")
+
+    # Cleanup memory
+    del model
+    del tokenizer
+    gc.collect()
+    torch.cuda.empty_cache()
+    print("Memory cleared.\n")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Evaluate fine-tuned classification model(s)"
+    )
+
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default=None,
+        help="Path to the fine-tuned model. If not provided, scans fine_tunings/classification_head",
+    )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default=None,
+        help="Override dataset path (uses training config if not provided)",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=16,
+        help="Batch size for inference",
+    )
+    parser.add_argument(
+        "--output_file",
+        type=str,
+        default=None,
+        help="Path to save evaluation results JSON (only specific when single model run)",
+    )
+
+    args = parser.parse_args()
+
+    if args.model_path:
+        # Evaluate specific model
+        evaluate_single_model(args.model_path, args.dataset, args.batch_size, args.output_file)
+    else:
+        # Batch evaluate all models in directory
+        base_dir = Path("fine_tunings/classification_head")
+        if not base_dir.exists():
+            print(f"Error: Directory {base_dir} does not exist.")
+            return
+
+        print(f"Searching for models in {base_dir}...")
+
+        # Find subdirectories that contain a config or model components (naive check)
+        model_dirs = sorted([d for d in base_dir.iterdir() if d.is_dir()])
+
+        if not model_dirs:
+            print("No models found.")
+            return
+
+        for model_path in model_dirs:
+            evaluate_single_model(str(model_path), args.dataset, args.batch_size)
 
 if __name__ == "__main__":
     main()

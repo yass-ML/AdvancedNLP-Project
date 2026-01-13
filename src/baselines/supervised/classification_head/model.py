@@ -263,8 +263,13 @@ def load_model_for_inference(model_path: str, config: ClassificationConfig = Non
     if config.use_lora:
         print(f"Loading LoRA adapters from {model_path}...")
         model = PeftModel.from_pretrained(base_model, model_path)
-        model = model.merge_and_unload()  # Merge for faster inference
-        print("LoRA adapters merged successfully.")
+
+        # Only merge if NOT using quantization (creating 4-bit/8-bit merge issues)
+        if not (config.load_in_4bit or config.load_in_8bit):
+            model = model.merge_and_unload()  # Merge for faster inference
+            print("LoRA adapters merged successfully.")
+        else:
+            print("Skipping LoRA merge (quantization active) to prevent precision loss.")
     else:
         model = base_model
 
