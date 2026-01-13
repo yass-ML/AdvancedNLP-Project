@@ -1,0 +1,10 @@
+- Model: llama3:8b
+  Strategy: cross_encoder
+  K: 3
+  Accuracy: 0.69
+  F1_Weighted: 0.6760124875756754
+  F1_Macro: 0.668892589293782
+  Avg_Prompt_Tokens: 443.35
+  Avg_Completion_Tokens: 3.13
+  Avg_Latency_Seconds: 0.9477603650093078
+  Task: Phase 3 Selector Experiment
