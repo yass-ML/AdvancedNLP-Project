@@ -99,7 +99,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Determine models to train
     if args.models:
         models = args.models
     else:
@@ -149,7 +148,6 @@ def main():
             print(f"✗ Failed to train {model}. Error: {e}")
             results[model] = f"failed: {e}"
 
-    # Summary
     print("\n" + "=" * 60)
     print("TRAINING SUMMARY")
     print("=" * 60)

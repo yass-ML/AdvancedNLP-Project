@@ -5,8 +5,6 @@ def test_phi3():
     model_name = "phi3:mini"
     problem = "Find the value of x if 2x + 5 = 15."
     
-    # Simulate the prompt used in compute_metrics.py
-    # Note: K=0 for simplicity, or we can mock K=something
     categories = ["Algebra", "Counting & Probability", "Geometry", "Intermediate Algebra", "Number Theory", "Prealgebra", "Precalculus"]
     
     prompt = f"""
@@ -36,7 +34,6 @@ def test_phi3():
         print(f"\nRaw Response:\n'{result}'")
         print(f"Token Count: {len(result.split())} words (approx)")
         
-        # Check matching logic
         found = False
         for cat in sorted(categories, key=len, reverse=True):
             if cat.lower() in result.lower():

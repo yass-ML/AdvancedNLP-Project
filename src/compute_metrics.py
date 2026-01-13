@@ -1,3 +1,8 @@
+"""
+Pipeline to compute metrics for math problem classification using Ollama models.
+Supports few-shot learning with various shot selection strategies.
+"""
+
 import pandas as pd
 from sklearn.metrics import f1_score
 import requests
@@ -97,11 +102,10 @@ class MetricsPipeline:
             data = response.json()
             result = data.get("response", "").strip()
             
-            # Extract token counts
             prompt_eval_count = data.get("prompt_eval_count", 0)
             eval_count = data.get("eval_count", 0)
             
-            # Flexible matching for category
+
             for cat in sorted(self.categories, key=len, reverse=True):
                 if cat.lower() in result.lower():
                     return cat, prompt_eval_count, eval_count
@@ -135,9 +139,8 @@ class MetricsPipeline:
         batch_count = 0
         for idx, (i, row) in enumerate(data.iterrows()):
             problem = row['problem']
-            true_label = row.get('type', row.get('category', 'Unknown')) # robust column access
+            true_label = row.get('type', row.get('category', 'Unknown'))
             
-            # Unpack prediction and tokens
             import time
             start_time = time.time()
             predicted_label, prompt_tokens, completion_tokens = self.predict(problem)
@@ -154,7 +157,6 @@ class MetricsPipeline:
                 correct += 1
             total += 1
             
-            # Show progress per batch
             if (idx + 1) % batch_size == 0:
                 batch_count += 1
                 batch_accuracy = correct / total if total > 0 else 0
@@ -189,7 +191,6 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str, default="datasets/competition_math/data/", help="Path to dataset")
     parser.add_argument("--sample", type=int, default=5, help="Number of samples to evaluate")
     
-    # Added arguments to support standalone testing of strategies
     parser.add_argument("--strategy", type=str, default="random", 
                         choices=["random", "lexical", "semantic", "cross_encoder", "dpo"],
                         help="Shot selection strategy")

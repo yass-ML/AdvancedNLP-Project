@@ -20,7 +20,6 @@ def load_data():
 
 raw_data = load_data()
 
-# Process data into DataFrame
 data = []
 model_name_map = {
     'llama3:8b': 'Llama 3',
@@ -65,11 +64,9 @@ if df.empty:
     print("No success data found to plot.")
     exit()
 
-# 2. Configuration du Graphique
 plt.figure(figsize=(14, 9))
 plt.rcParams['font.family'] = 'sans-serif'
 
-# Couleurs et Marqueurs distincts
 colors = {
     'Llama 3': '#1f77b4',   # Bleu
     'Mistral 7B': '#ff7f0e',# Orange
@@ -80,32 +77,25 @@ colors = {
 }
 markers = {'Semantic': 's', 'DPO': 'o'} 
 
-# 3. Tracer la courbe de Scaling Llama 3 (Pareto Frontier)
 llama_df = df[df['Model'] == 'Llama 3'].sort_values('K')
 if not llama_df.empty:
     plt.plot(llama_df['Latency'], llama_df['Accuracy'], 
              color=colors.get('Llama 3', 'blue'), linestyle='--', linewidth=2, alpha=0.5, zorder=1, label='Llama 3 Scaling')
 
-    # Annoter les points Llama (K=1, 3, 5...)
     for _, row in llama_df.iterrows():
         plt.text(row['Latency'], row['Accuracy'] + 0.01, f"K={row['K']}", 
                  color=colors.get('Llama 3', 'blue'), fontsize=9, ha='center', fontweight='bold')
 
-# 4. Tracer tous les points
 for _, row in df.iterrows():
     c = colors.get(row['Model'], 'gray')
     m = markers.get(row['Strategy'], 'o')
     
-    # Scatter plot
     plt.scatter(row['Latency'], row['Accuracy'], 
                 color=c, marker=m, s=150, edgecolors='white', linewidth=1.5, zorder=3, alpha=0.9)
 
-    # Étiquettes intelligentes (pour éviter le chevauchement)
-    # On n'affiche le nom que pour les points hors de la courbe Llama (ou le premier point Llama)
     if row['Model'] != 'Llama 3':
         label_text = f"{row['Model']}\n({row['Strategy']})"
         
-        # Décalage manuel pour les cas difficiles
         xytext = (0, -25) # Par défaut: en dessous
         if 'Qwen' in row['Model']:
             xytext = (-30, 0) if row['Strategy'] == 'Semantic' else (30, 0)
@@ -118,7 +108,6 @@ for _, row in df.iterrows():
                      xytext=xytext, textcoords='offset points', ha='center', fontsize=8, alpha=0.8,
                      bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="none", alpha=0.6))
 
-# 5. Réglage des Axes (Log Scale est la clé ici !)
 plt.xscale('log')
 plt.gca().xaxis.set_major_formatter(ScalarFormatter()) 
 plt.grid(True, which="both", ls="-", alpha=0.15)
@@ -127,7 +116,6 @@ plt.xlabel('Average Latency (seconds) [Log Scale]', fontsize=12, fontweight='bol
 plt.ylabel('Accuracy (Test Set)', fontsize=12, fontweight='bold')
 plt.title('Pareto Frontier: Accuracy vs. Cost (Latency)', fontsize=16)
 
-# Légende personnalisée
 legend_elements = [
     Line2D([0], [0], color=colors.get('Llama 3', 'blue'), lw=2, linestyle='--', label='Llama 3 Scaling'),
     Line2D([0], [0], marker='o', color='gray', label='DPO Strategy', markersize=10, lw=0),

@@ -21,7 +21,6 @@ def main():
         description="Fine-tune a model with classification head"
     )
 
-    # Required arguments
     parser.add_argument(
         "--run_name",
         type=str,
@@ -35,7 +34,6 @@ def main():
         help="Model name (e.g., gemma:2b, llama3:8b) or HuggingFace model ID",
     )
 
-    # Data arguments
     parser.add_argument(
         "--dataset",
         type=str,
@@ -61,7 +59,6 @@ def main():
         help="Limit dataset size (float for fraction, int for count)",
     )
 
-    # Training arguments
     parser.add_argument(
         "--num_epochs",
         type=int,
@@ -87,7 +84,6 @@ def main():
         help="Maximum sequence length",
     )
 
-    # LoRA arguments
     parser.add_argument(
         "--use_lora",
         action="store_true",
@@ -111,7 +107,6 @@ def main():
         help="LoRA alpha",
     )
 
-    # Quantization arguments
     parser.add_argument(
         "--load_in_4bit",
         action="store_true",
@@ -123,7 +118,6 @@ def main():
         help="Use 8-bit quantization",
     )
 
-    # Focal loss arguments for handling class imbalance
     parser.add_argument(
         "--use_focal_loss",
         action="store_true",
@@ -148,7 +142,6 @@ def main():
         help="Method for computing class weights",
     )
 
-    # Output arguments
     parser.add_argument(
         "--output_dir",
         type=str,
@@ -156,7 +149,6 @@ def main():
         help="Base output directory",
     )
 
-    # Resume training
     parser.add_argument(
         "--resume_from_checkpoint",
         type=str,
@@ -166,17 +158,14 @@ def main():
 
     args = parser.parse_args()
 
-    # Determine LoRA usage
-    use_lora = True  # Default
+    use_lora = True 
     if args.no_lora:
         use_lora = False
     elif args.use_lora:
         use_lora = True
 
-    # Determine class weights usage
     use_class_weights = not args.no_class_weights
 
-    # Create config
     config = get_config(
         run_name=args.run_name,
         model_name=args.model_name,
@@ -200,7 +189,6 @@ def main():
         class_weight_method=args.class_weight_method,
     )
 
-    # Run training
     train(config, resume_from_checkpoint=args.resume_from_checkpoint)
 
 

@@ -63,7 +63,6 @@ def evaluate_model(
     all_probs = []
     inference_times = []
 
-    # Process in batches
     num_samples = len(test_dataset)
 
     pbar = tqdm(range(0, num_samples, batch_size), desc="Evaluating")
@@ -71,11 +70,9 @@ def evaluate_model(
         end_idx = min(start_idx + batch_size, num_samples)
         batch = test_dataset.select(range(start_idx, end_idx))
 
-        # Get texts and labels - convert to list explicitly
         texts = list(batch[config.text_column])
         labels = [config.label2id[l] for l in batch[config.label_column]]
 
-        # Tokenize
         inputs = tokenizer(
             texts,
             truncation=True,
@@ -84,7 +81,6 @@ def evaluate_model(
             return_tensors="pt",
         ).to(device)
 
-        # Inference
         start_time = time.time()
         with torch.no_grad():
             outputs = model(**inputs)
@@ -100,23 +96,19 @@ def evaluate_model(
         all_probs.extend(probs.cpu().numpy().tolist())
         inference_times.append(end_time - start_time)
 
-    # Convert to numpy
     all_predictions = np.array(all_predictions)
     all_labels = np.array(all_labels)
 
-    # Calculate metrics
     accuracy = accuracy_score(all_labels, all_predictions)
     precision, recall, f1, support = precision_recall_fscore_support(
         all_labels, all_predictions, average="weighted", zero_division=0
     )
     f1_macro = f1_score(all_labels, all_predictions, average="macro", zero_division=0)
 
-    # Per-class metrics
     precision_per_class, recall_per_class, f1_per_class, _ = precision_recall_fscore_support(
         all_labels, all_predictions, average=None, zero_division=0
     )
 
-    # Timing stats
     total_time = sum(inference_times)
     avg_time_per_sample = total_time / num_samples
     samples_per_second = num_samples / total_time
@@ -153,7 +145,6 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
     """
     print(f"\nProcessing Model: {model_path}")
 
-    # Load config
     try:
         config = load_config(model_path)
         print(f"Loaded config from {model_path}")
@@ -170,7 +161,6 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
             dataset_path=dataset_override,
         )
 
-    # Load model
     print(f"Loading model from {model_path}...")
     try:
         model, tokenizer = load_model_for_inference(model_path, config)
@@ -178,11 +168,9 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
         print(f"Error loading model from {model_path}: {e}")
         return
 
-    # Load test dataset
     print(f"Loading dataset: {config.dataset_path}")
     _, _, test_dataset, label2id, id2label = get_raw_dataset(config)
 
-    # Update config with label mappings if not present
     if not config.label2id:
         config.label2id = label2id
         config.id2label = id2label
@@ -191,13 +179,11 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
     print(f"Test set size: {len(test_dataset)}")
     print(f"Number of classes: {len(config.label2id)}")
 
-    # Evaluate
     print("\nRunning evaluation...")
     results, predictions, labels, id2label = evaluate_model(
         model, tokenizer, test_dataset, config, batch_size
     )
 
-    # Print results
     print("\n" + "=" * 60)
     print(f"EVALUATION RESULTS: {model_path}")
     print("=" * 60)
@@ -208,7 +194,6 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
     print(f"\nInference Speed: {results['samples_per_second']:.2f} samples/sec")
     print(f"Avg time per sample: {results['avg_time_per_sample_ms']:.2f} ms")
 
-    # Detailed classification report
     print("\n" + "=" * 60)
     print("CLASSIFICATION REPORT")
     print("=" * 60)
@@ -219,14 +204,12 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
     )
     print(report)
 
-    # Confusion matrix
     print("\n" + "=" * 60)
     print("CONFUSION MATRIX")
     print("=" * 60)
     cm = confusion_matrix(labels, predictions)
     class_names = [id2label[i] for i in sorted(id2label.keys())]
 
-    # Print header
     header = "True\\Pred".ljust(20) + " ".join([name[:8].ljust(10) for name in class_names])
     print(header)
     print("-" * len(header))
@@ -235,7 +218,6 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
         row_str = class_names[i][:18].ljust(20) + " ".join([str(val).ljust(10) for val in row])
         print(row_str)
 
-    # Save results
     if output_file:
         output_path = Path(output_file)
     else:
@@ -245,16 +227,13 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
         json.dump(results, f, indent=2)
     print(f"\nResults saved to {output_path}")
 
-    # Also save the classification report
     report_path = output_path.parent / "evaluation_classification_report.txt"
     with open(report_path, "w") as f:
         f.write(report)
     print(f"Classification report saved to {report_path}")
 
-    # Save to YAML (Requested Format) - Local
     yaml_path = output_path.parent / "evaluation_results.yaml"
 
-    # Construct record
     yaml_record = {
         "Model": config.model_name,
         "Dataset": config.dataset_path,
@@ -270,7 +249,6 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
         "Task": "FineTuned classification"
     }
 
-    # Load existing to append
     existing_data = []
     if yaml_path.exists():
         try:
@@ -288,10 +266,8 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
 
     print(f"Results appended to {yaml_path}")
 
-    # Save to Central YAML
     central_yaml_path = Path("fine_tunings/evaluation_results.yaml")
 
-    # Load existing to append
     central_data = []
     if central_yaml_path.exists():
         try:
@@ -304,7 +280,6 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
 
     central_data.append(yaml_record)
 
-    # Ensure directory exists
     central_yaml_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(central_yaml_path, "w") as f:
@@ -312,7 +287,6 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
 
     print(f"Results appended to {central_yaml_path}")
 
-    # Cleanup memory
     del model
     del tokenizer
     gc.collect()
@@ -353,10 +327,8 @@ def main():
     args = parser.parse_args()
 
     if args.model_path:
-        # Evaluate specific model
         evaluate_single_model(args.model_path, args.dataset, args.batch_size, args.output_file)
     else:
-        # Batch evaluate all models in directory
         base_dir = Path("fine_tunings/classification_head")
         if not base_dir.exists():
             print(f"Error: Directory {base_dir} does not exist.")
@@ -364,7 +336,6 @@ def main():
 
         print(f"Searching for models in {base_dir}...")
 
-        # Find subdirectories that contain a config or model components (naive check)
         model_dirs = sorted([d for d in base_dir.iterdir() if d.is_dir()])
 
         if not model_dirs:

@@ -4,7 +4,6 @@ import yaml
 import argparse
 import pandas as pd
 
-# Add src to python path to allow importing benchmark_models
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from benchmark_models import benchmark_models
 
@@ -24,10 +23,6 @@ def run_comparison(sample_size, k_shots, dataset_path, dpo_path):
         print(f"Running for Strategy: {strategy.upper()}")
         print(f"{'#'*60}")
         
-        # We run benchmark_models for all models for this strategy
-        # benchmark_models handles the loop over models, but we can also loop manually if we want more control.
-        # However, benchmark_models takes a list of models, so let's use that feature.
-        
         try:
             results = benchmark_models(
                 models=MODELS,
@@ -42,7 +37,6 @@ def run_comparison(sample_size, k_shots, dataset_path, dpo_path):
         except Exception as e:
             print(f"Error running strategy {strategy}: {e}")
             
-    # Save aggregated results
     output_dir = "model-experiment-result"
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, "model_comparison_results.yaml")
@@ -52,7 +46,6 @@ def run_comparison(sample_size, k_shots, dataset_path, dpo_path):
         
     print(f"\n--> All experiments completed. Aggregated results saved to {output_file}")
     
-    # Simple display
     df = pd.DataFrame(all_results)
     if not df.empty:
         print("\nAggregated Summary:")
