@@ -1,2 +1,0 @@
-Model,Accuracy,F1 (Weighted),F1 (Macro),Avg Prompt Tokens,Avg Completion Tokens,Strategy,K,Status
-llama3:8b,0.73,0.7230684519795273,0.7292135932990551,525.41,3.95,semantic,5,Success

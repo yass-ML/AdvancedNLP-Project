@@ -43,7 +43,6 @@ class ShotSelector:
             self.embedder = SentenceTransformer('all-MiniLM-L6-v2', device=self.device)
             
             embeddings_path = "embeddings/all-MiniLM-L6-v2-emb.pkl"
-            embeddings_path = "embeddings/all-MiniLM-L6-v2-emb.pkl"
             if os.path.exists(embeddings_path):
                 print(f"Loading cached embeddings from {embeddings_path}...")
                 self.corpus_embeddings = self.load_embeddings(embeddings_path)
@@ -52,26 +51,19 @@ class ShotSelector:
                 if len(self.corpus_embeddings) != len(self.problems):
                     print(f"Warning: Cached embeddings size ({len(self.corpus_embeddings)}) does not match dataset size ({len(self.problems)}). Re-encoding...")
                     self.corpus_embeddings = self.embedder.encode(
-                        self.problems, 
-                        convert_to_tensor=True, 
-                        show_progress_bar=True,
-                        device=self.device
+                        self.problems, convert_to_tensor=True, 
+                        show_progress_bar=True, device=self.device
                     )
                     self.save_embeddings(self.corpus_embeddings, embeddings_path)
             else:
                 print("Encoding dataset...")
                 self.corpus_embeddings = self.embedder.encode(
-                    self.problems, 
-                    convert_to_tensor=True, 
-                    show_progress_bar=True,
-                    device=self.device
+                    self.problems, convert_to_tensor=True, 
+                    show_progress_bar=True, device=self.device
                 )
                 self.save_embeddings(self.corpus_embeddings, embeddings_path)
-
-        # --- Strategy Specific Initializations ---
         if self.method == "random":
             pass
-            
         elif self.method == "lexical":
             print("Tokenizing corpus for BM25...")
             tokenized_corpus = [doc.split(" ") for doc in self.problems]
@@ -83,11 +75,10 @@ class ShotSelector:
 
         elif self.method == "dpo":
             print(f"Loading DPO-Trained Selector from: {self.dpo_model_path}...")
-            # The CrossEncoder wrapper can load local HF models if they have config.json
             if os.path.exists(self.dpo_model_path):
                 self.cross_encoder = CrossEncoder(self.dpo_model_path, device=self.device, num_labels=1)
             else:
-                raise FileNotFoundError(f"DPO Model not found at {self.dpo_model_path}. Did you run the training script?")
+                raise FileNotFoundError(f"DPO Model not found at {self.dpo_model_path}")
     
     def save_embeddings(self, embeddings, path: str):
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -109,7 +100,6 @@ class ShotSelector:
         if self.method == "dpo":
             fetch_k = 50
             query_embedding = self.embedder.encode(query, convert_to_tensor=True, device=self.device)
-            
             hits = util.semantic_search(query_embedding, self.corpus_embeddings, top_k=fetch_k)[0]
             
             candidate_indices = []
@@ -121,18 +111,15 @@ class ShotSelector:
                     candidate_indices.append(idx)
                     semantic_scores.append(hit['score'])
             
-            if not candidate_indices: return []
+            if not candidate_indices:
+                return []
 
-            # 2. Calculate DPO Probabilities
             candidate_problems = [self.problems[idx] for idx in candidate_indices]
             model_inputs = [[query, prob] for prob in candidate_problems]
             
             dpo_logits = self.cross_encoder.predict(model_inputs)
-            dpo_probs = 1 / (1 + np.exp(-dpo_logits)) 
+            dpo_probs = 1 / (1 + np.exp(-dpo_logits))
             
-            # 3. HYBRID SCORING (The Fix)
-            # Alpha determines the balance.
-            # 0.4 means "40% Semantic Similarity + 60% Label Correctness"
             alpha = 0.6
 
             final_scores = []
@@ -163,34 +150,26 @@ class ShotSelector:
             return self.dataset.iloc[top_n_indices].to_dict('records')
             
         elif self.method in ["cross_encoder", "dpo"]:
-            # 1. Retrieve Candidates (High Recall: fetch 50 candidates)
             fetch_k = min(50, len(self.dataset))
             query_embedding = self.embedder.encode(query, convert_to_tensor=True, device=self.device)
             hits = util.semantic_search(query_embedding, self.corpus_embeddings, top_k=fetch_k)[0]
             
-            # 2. Re-rank with CrossEncoder (DPO or Standard)
             candidate_indices = [hit['corpus_id'] for hit in hits]
-            
-            # Filter out the query itself if it exists in the dataset (Data Leakage Protection)
-            # We check text similarity string-wise to be safe
             filtered_indices = []
             for idx in candidate_indices:
                 if self.problems[idx].strip() != query.strip():
                     filtered_indices.append(idx)
             
-            if not filtered_indices: return [] # Handle edge case
+            if not filtered_indices:
+                return []
             
             candidate_problems = [self.problems[idx] for idx in filtered_indices]
             model_inputs = [[query, prob] for prob in candidate_problems]
             
-            # Predict scores
             cross_scores = self.cross_encoder.predict(model_inputs)
-            
-            # Sort
             scored_candidates = list(zip(filtered_indices, cross_scores))
             scored_candidates.sort(key=lambda x: x[1], reverse=True)
             
-            # Select top k
             top_indices = [x[0] for x in scored_candidates[:k]]
             return self.dataset.iloc[top_indices].to_dict('records')
         

@@ -5,7 +5,6 @@ import yaml
 import argparse
 import pandas as pd
 
-# Add src to python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from compute_metrics import MetricsPipeline
 
@@ -16,7 +15,6 @@ def resolve_path(provided_path, target_name):
     if os.path.exists(provided_path):
         return provided_path
     
-    # Try finding it in project root (assuming script is in src/phase5/ -> root is ../../)
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
     candidates = [
         os.path.join(project_root, target_name),
@@ -31,18 +29,14 @@ def resolve_path(provided_path, target_name):
     return provided_path # Return original to fail with clear error if not found
 
 def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
-    # Fixed Parameters
-    MODELS = ['deepseek-r1:8b']
+    MODELS = ['deepseek-r1:8b', 'llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini', 'qwen2:7b', 'qwen3:8b']
     STRATEGY = 'dpo'
     
-    # Resolve Paths
     dataset_relative = "datasets/competition_math/data/train-00000-of-00001-7320a6f3aba8ebd2.parquet"
     DATASET_PATH = resolve_path(dataset_relative, dataset_relative)
     
-    # Clean up dpo path argument if it was the default relative one which failed
     DPO_PATH = resolve_path(dpo_path_arg, "dpo_selector_model")
     
-    # Variable: K-Shots
     K_VALUES = [1, 3, 5, 10, 15, 20, 25]
     
     all_results = []
@@ -80,7 +74,6 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
                 
                 pipeline.load_data()
                 
-                # Evaluate returns: accuracy, f1_weighted, f1_macro, avg_prompt_tokens, avg_completion_tokens, avg_latency
                 print(f"    Processing {sample_size} samples in batches of {batch_size}...")
                 accuracy, f1_w, f1_m, avg_prompt, avg_comp, avg_latency = pipeline.evaluate(
                     sample_size=sample_size,
@@ -123,7 +116,6 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
         
     print(f"\n--> Experiment completed. Results saved to {output_file}")
     
-    # Simple display
     df = pd.DataFrame(all_results)
     if not df.empty:
         print("\nAggregated Summary:")

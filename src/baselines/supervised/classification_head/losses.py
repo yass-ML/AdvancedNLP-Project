@@ -7,6 +7,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional
 
+import numpy as np
+from collections import Counter
+
 
 class FocalLoss(nn.Module):
     """
@@ -68,10 +71,8 @@ class FocalLoss(nn.Module):
         """
         num_classes = inputs.size(-1)
 
-        # Compute softmax probabilities
         p = F.softmax(inputs, dim=-1)
 
-        # Get probability of true class
         ce_loss = F.cross_entropy(
             inputs, targets,
             reduction="none",
@@ -79,20 +80,16 @@ class FocalLoss(nn.Module):
         )
         p_t = p.gather(1, targets.unsqueeze(1)).squeeze(1)
 
-        # Compute focal weight
         focal_weight = (1 - p_t) ** self.gamma
 
-        # Apply focal weight to cross-entropy loss
         focal_loss = focal_weight * ce_loss
 
-        # Apply class weights if provided
         if self.alpha is not None:
             if self.alpha.device != inputs.device:
                 self.alpha = self.alpha.to(inputs.device)
             alpha_t = self.alpha.gather(0, targets)
             focal_loss = alpha_t * focal_loss
 
-        # Apply reduction
         if self.reduction == "mean":
             return focal_loss.mean()
         elif self.reduction == "sum":
@@ -116,30 +113,23 @@ def compute_class_weights(labels: list, num_classes: int, method: str = "inverse
     Returns:
         Tensor of shape (num_classes,) with class weights
     """
-    import numpy as np
-    from collections import Counter
 
-    # Count samples per class
     counts = Counter(labels)
     total = len(labels)
 
     weights = torch.zeros(num_classes)
 
     if method == "inverse":
-        # Weight inversely proportional to frequency
         for cls_idx in range(num_classes):
-            count = counts.get(cls_idx, 1)  # Avoid division by zero
+            count = counts.get(cls_idx, 1)
             weights[cls_idx] = total / (num_classes * count)
 
     elif method == "inverse_sqrt":
-        # Square root of inverse frequency (less aggressive)
         for cls_idx in range(num_classes):
             count = counts.get(cls_idx, 1)
             weights[cls_idx] = np.sqrt(total / (num_classes * count))
 
     elif method == "effective":
-        # Effective number of samples (Cui et al., 2019)
-        # "Class-Balanced Loss Based on Effective Number of Samples"
         beta = 0.9999
         for cls_idx in range(num_classes):
             count = counts.get(cls_idx, 1)

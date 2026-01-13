@@ -1,3 +1,7 @@
+"""
+Pipeline to generate a relevance-optimized dataset for DPO training using semantic search and sentence embeddings.
+"""
+
 import argparse
 import pandas as pd
 from sentence_transformers import SentenceTransformer, util

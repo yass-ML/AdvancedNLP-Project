@@ -1,3 +1,16 @@
+"""
+Script to run Phase 3 Selector Experiment with various selection strategies.
+Saves results in YAML format for further analysis and plotting.
+
+The tested strategies include:
+- Random Selection
+- Semantic Similarity Selection
+- Lexical Similarity Selection
+- Cross-Encoder Based Selection
+- DPO-Based Selection
+
+"""
+
 import os
 import yaml
 import argparse
