@@ -1,10 +1,19 @@
 # The Few-shot Dilemma: Over-prompting Large Language Models in Resource-Constrained Environments
 
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white)
+![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-yellow?style=for-the-badge)
+![Ollama](https://img.shields.io/badge/Ollama-white?style=for-the-badge&logo=ollama&logoColor=black)
+![Unsloth](https://img.shields.io/badge/Unsloth-black?style=for-the-badge)
+![Jupyter](https://img.shields.io/badge/Jupyter-F37626.svg?style=for-the-badge&logo=Jupyter&logoColor=white)
+![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
+![Scikit-Learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
+
 ## 👥 Authors
-* Amine Mike El Maalouf
-* Cédric Damais
-* Yacine Benihaddadene
-* Léon Ayral
+* [Cédric Damais](https://github.com/CedricDamais)
+* [Yacine Benihaddadene](https://github.com/yass-ML)
+* [Amine Mike El Maalouf](https://github.com/Amine-Mike)
+* [Léon Ayral](https://github.com/LeoN1203)
 
 ---
 
