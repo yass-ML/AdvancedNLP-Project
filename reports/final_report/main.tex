@@ -120,7 +120,8 @@ We conducted 3 experiments. For each one, we studied the impact of a \textbf{tho
 \end{enumerate}
 
 
-
+\paragraph{Data Isolation Protocol}
+To ensure the integrity of our results and prevent data leakage, we strictly enforced a temporal isolation protocol. A held-out \textbf{Test Set} (10\% of the corpus) was sequestered at the beginning of the study and used exclusively for the final evaluation of all models. The remaining data formed the \textbf{Training/Selection Pool}, from which few-shot examples were retrieved. This ensures that no example appearing in the prompt was ever used as a test query, accurately simulating a real-world inference scenario.
 
 
 \subsection{Evaluated Tasks}
