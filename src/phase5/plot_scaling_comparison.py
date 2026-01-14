@@ -9,7 +9,7 @@ from matplotlib.ticker import ScalarFormatter
 
 def plot_scaling_scatter():
     # Load data
-    yaml_path = os.path.join(os.path.dirname(__file__), "../../model-experiment-result/phase5_scaling_results.yaml")
+    yaml_path = os.path.join(os.path.dirname(__file__), "../../experiment_results/Full_phase5_scaling_results.yaml")
     
     if not os.path.exists(yaml_path):
         print(f"Error: {yaml_path} not found")
@@ -34,27 +34,27 @@ def plot_scaling_scatter():
     model_colors = dict(zip(models, palette))
     
     # 1. Plot connected lines (Trajectories)
-    sns.lineplot(data=df, x='Avg_Latency', y='Accuracy', hue='Model', 
+    sns.lineplot(data=df, x='Avg_Latency', y='F1_Weighted', hue='Model', 
                  palette=model_colors, linewidth=1.5, alpha=0.6, sort=False, legend=False)
     
     # 2. Plot scatter points
-    sns.scatterplot(data=df, x='Avg_Latency', y='Accuracy', hue='Model', 
+    sns.scatterplot(data=df, x='Avg_Latency', y='F1_Weighted', hue='Model', 
                     palette=model_colors, s=100, edgecolor='black', alpha=0.9, legend='full')
     
     # 3. Annotate K values
     # To avoid clutter, we can try to be smart, or just annotate all since requested.
     # We'll annotate all but use a small font.
     for i, row in df.iterrows():
-        plt.text(row['Avg_Latency'], row['Accuracy'], f"K={row['K']}", 
+        plt.text(row['Avg_Latency'], row['F1_Weighted'], f"K={row['K']}", 
                  fontsize=8, ha='right', va='bottom', fontweight='bold', alpha=0.8)
 
     # 4. Axes and Labels
     plt.xscale('log')
     plt.gca().xaxis.set_major_formatter(ScalarFormatter())
     
-    plt.title('Phase 5 Scaling: Accuracy vs Latency vs K', fontsize=18)
+    plt.title('Phase 5 Scaling: F1 Weighted vs Latency vs K', fontsize=18)
     plt.xlabel('Average Latency (seconds) [Log Scale]', fontsize=14)
-    plt.ylabel('Accuracy', fontsize=14)
+    plt.ylabel('F1 Weighted', fontsize=14)
     plt.grid(True, which="both", ls="-", alpha=0.2)
     
     # Improve Legend
