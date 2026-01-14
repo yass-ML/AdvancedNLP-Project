@@ -67,7 +67,7 @@ Large Language Models (LLMs) have revolutionized NLP through In-Context Learning
 \section{Introduction}
 Large Language Models (LLMs) have revolutionized NLP through In-Context Learning (ICL). However, primarily deploying massive models is infeasible for many real-world applications due to privacy, latency, and ressource constraints. This has led to a resurgence of interest in Small Language Models (SLMs).
 
-A prevailing dominance in prompt engineering is that providing more examples yields better performance. Inspired by the work of Tang et al. (The Few Shot Dilemma: Over-prompting Large Language Models), we challenge this assumption for SLMs as well: Unlike their larger counterparts, SLMs suffer more acutely from limited context windows and attention drift.
+A prevailing dominance in prompt engineering is that providing more examples yields better performance. Inspired by the work of Tang et al. \citep{fewshot2025}, we challenge this assumption for SLMs as well: Unlike their larger counterparts, SLMs suffer more acutely from limited context windows and attention drift.
 
 In this work, we investigate the Few-Shot Dilemma in SLMs. We hypothesize that an effective Few-Shot example selection procedure, considering both relevancy and quantity, enables SLMs to achieve competitive performance while mitigating the effects of limited context windows and attention drift.
 We explore ways to find a ``sweet spot'' the \textbf{Pareto frontier} where an SLM achieves near-supervised performance using the minimal number of optimally selected examples.
@@ -78,7 +78,7 @@ We explore ways to find a ``sweet spot'' the \textbf{Pareto frontier} where an S
 Since the introduction of GPT-3 \citep{brown2020language}, In-Context Learning (ICL) has become the standard for few-shot adaptation by conditioning the model on demonstrations without gradient updates. Early foundational studies suggested that performance generally improves with the number of examples ($K$), although gains are task-dependent and can saturate or fluctuate. Notably, these observations were primarily derived from massive models (e.g., GPT-3 175B) with larger context windows, leaving a gap in understanding how ICL behaves systematically in resource-constrained environments typical of SLMs.
 
 \subsection{Example Selection Strategies}
-While increasing $K$ can help, the quality of examples is paramount. \citet{liu2022makes} demonstrated that retrieving semantically similar examples using k-nearest neighbors (kNN) significantly outperforms random sampling by increasing the semantic similarity between the context and the test query. However, most existing research focuses on maximizing accuracy in large-context settings, often overlooking the trade-off with the strictly limited **context budget** of smaller models.
+While increasing $K$ can help, the quality of examples is paramount. \citet{liu2022makes} demonstrated that retrieving semantically similar examples using k-nearest neighbors (kNN) significantly outperforms random sampling by increasing the semantic similarity between the context and the test query. However, most existing research focuses on maximizing accuracy in large-context settings, often overlooking the trade-off with the strictly limited \textbf{context budget} of smaller models.
 
 \subsection{The Challenge of Context Constraints}
 Recent work highlights distinct failure modes in ICL. \citet{lostInTheMiddle2023} identified a "Lost in the Middle" phenomenon where models perform best when relevant information is at the beginning or end of the context, and substantially worse when it is in the middle. This is particularly critical for Small Language Models (SLMs) with restricted context windows (e.g., 2048 tokens). Furthermore, \citet{fewshot2025} explicitly characterize an "over-prompting" dilemma, where adding examples beyond a certain threshold leads to performance degradation due to noise and distraction. \citet{zhao2021calibrate} also highlight the high variance and instability of few-shot learning, necessitating robust selection strategies beyond simple random sampling.
@@ -107,7 +107,7 @@ We conducted 3 experiments. For each one, we studied the impact of a thoroughly 
 
     \item \textbf{Model Experiment:} We fix the selection strategy and vary the model architecture to benchmark SLM capabilities. We evaluate:
     \begin{itemize}
-        \item \textbf{Target Models:} Phi-3-mini, Llama-3.2 (1B/3B), Mistral, and Qwen.
+        \item \textbf{Target Models:} Phi-3-mini, Llama-3 (8B), Mistral (7B), Gemma (7B) and the Qwen family (3:8B and 2:7B).
         \item \textbf{Objective:} Identify which architecture maximizes score for a given optimized prompt structure.
     \end{itemize}
 
@@ -243,32 +243,32 @@ These zero-shot baselines serve as the control group for our subsequent few-shot
 \subsection{Supervised Baseline Comparison}
 To measure the maximum potential performance of Small Language Models (SLMs) on this task, we established supervised fine-tuning (SFT) ceilings. This comparison defines the "Adaptation Headroom"—the performance gap between a model's intrinsic zero-shot capabilities and its fully fine-tuned potential.
 
-Table \ref{tab:supervised_results} compares the zero-shot baseline against the two fine-tuned variants: Generative (Unsloth) and Discriminative (Classification Head).
+Table \ref{tab:supervised_results} compares the F1 Weighted score of the zero-shot baseline against the two fine-tuned variants: Generative (Unsloth) and Discriminative (Classification Head).
 
 \begin{table}[htbp]
     \centering
-    \caption{Supervised Fine-Tuning Performance Ceilings}
+    \caption{Supervised Fine-Tuning F1 Performance Ceilings}
     \label{tab:supervised_results}
     \begin{tabular}{lcccc}
         \toprule
         \textbf{Model} & \textbf{Zero-Shot} & \textbf{SFT (Discrim)} & \textbf{SFT (Gen)} & \textbf{Gain (\%)} \\
         \midrule
-        Qwen2-7B & 0.49 & 0.85 & 0.76 & +73.5\% \\
-        Llama-3-8B & 0.46 & 0.83 & 0.79 & +80.4\% \\
-        Mistral-7B & 0.43 & 0.81 & 0.82 & +90.7\% \\
-        Gemma-7B & 0.37 & N/A & 0.75 & +102.7\% \\
-        Phi-3-Mini & 0.33 & N/A & 0.67 & +103.0\% \\
+        Qwen2-7B & 0.38 & \textbf{0.85} & 0.76 & +123.6\% \\
+        Llama-3-8B & 0.34 & 0.83 & 0.79 & +144.1\% \\
+        Mistral-7B & 0.35 & 0.81 & \textbf{0.82} & +134.3\% \\
+        Gemma-7B & 0.36 & N/A & 0.75 & +108.3\% \\
+        Phi-3-Mini & 0.27 & N/A & 0.67 & \textbf{+148.1}\% \\
         \bottomrule
     \end{tabular}
     \vspace{0.1cm}
 
-    \small{\textit{*SFT (Gen): Unsloth Generative Fine-tuning, SFT (Discrim): HuggingFace Classification Head.}}
+    \small{\textit{*SFT (Gen): Unsloth Generative Fine-tuning, SFT (Discrim): HuggingFace Classification Head. N/A indicate no Fine-Tuning. Qwen3:8b is not included as it is not available on HuggingFace or Unsloth}}
 \end{table}
 
 \subsubsection{Quantifying the Adaptation Headroom}
-The results indicate a substantial gap between intrinsic knowledge and task-specific optimization. All models showed significant responsiveness to fine-tuning, with \textbf{Phi-3-Mini} demonstrating the highest plasticity (+103.0\% relative gain). We notably observed that:
+The results indicate a substantial gap between intrinsic knowledge and task-specific optimization. All models showed significant responsiveness to fine-tuning, with \textbf{Phi-3-Mini} demonstrating the highest plasticity (+148.1\% relative gain). We notably observed that:
 \begin{itemize}
-    \item \textbf{Discriminative Superiority:} The Discriminative approach (Classification Head) consistently yielded higher accuracy than generative fine-tuning (e.g., Qwen2 achieved 0.85 vs. 0.76). This suggests that constraining the SLM to a fixed classification head effectively mitigates the "formatting drift" often observed in generative outputs.
+    \item \textbf{Discriminative Superiority:} The Discriminative approach (Classification Head) consistently yielded higher weighted F1 than generative fine-tuning (e.g., Qwen2 achieved 0.85 vs. 0.76). This suggests that constraining the SLM to a fixed classification head effectively mitigates the "formatting drift" often observed in generative outputs.
     \item \textbf{Zero-Shot Correlation:} Models with stronger zero-shot baselines generally achieved higher SFT peaks, confirming that pre-training quality dictates the ultimate ceiling regardless of the adaptation method.
 \end{itemize}
 
@@ -430,7 +430,7 @@ We first established the intrinsic capabilities of the SLMs in a zero-shot setti
 The results reveal a substantial performance gap between general-purpose SLMs and the specialized NuNER Zero model. All tested SLMs achieved approximately half the F1 score of the state-of-the-art baseline, indicating that entity recognition requires more than general instruction-following capabilities. Notably, Qwen3-8B and Llama-3-8B performed comparably (0.30 and 0.29 respectively), while Phi-3-Mini lagged behind with 0.20 F1, consistent with its smaller parameter count.
 
 \subsection{Selector Experiment (NER)}
-We evaluated the impact of example selection strategies on the entity extraction accuracy of Llama-3-8B. Given the structural nature of NER, we hypothesized that semantic relevance plays a crucial role in preventing entity type hallucinations.
+We evaluated the impact of example selection strategies on the entity extraction F1 Score of Llama-3-8B. Given the structural nature of NER, we hypothesized that semantic relevance plays a crucial role in preventing entity type hallucinations.
 
 \subsubsection{Results}
 \begin{table}[htbp]
@@ -498,7 +498,7 @@ To rigorously assess the utility of our proposed DPO Selection strategy, we cons
 
 We define \textbf{Recovery Rate} as the percentage of the "SFT Headroom" that is recovered purely through in-context learning:
 \begin{equation}
-    \text{Recovery Rate} = \frac{\text{ICL}_{acc} - \text{Zero}_{acc}}{\text{SFT}_{acc} - \text{Zero}_{acc}}
+    \text{Recovery Rate} = \frac{\text{ICL}_{f1} - \text{Zero}_{f1}}{\text{SFT}_{f1} - \text{Zero}_{f1}}
 \end{equation}
 
 \begin{table}[htbp]
@@ -510,12 +510,12 @@ We define \textbf{Recovery Rate} as the percentage of the "SFT Headroom" that is
         \multirow{2}{*}{\textbf{Model}} & \textbf{Intrinsic} & \textbf{In-Context} & \textbf{Supervised} & \textbf{Absolute} & \textbf{Recovery} \\
         & (Zero-Shot) & (DPO, $K=3$) & (Ceiling) & \textbf{Gain (ICL)} & \textbf{Rate (\%)} \\
         \midrule
-        \textbf{Qwen3-8B} & 0.402 & 0.825 & N/A & +0.423 & N/A \\
-        \textbf{Qwen2-7B} & 0.380 & 0.781 & 0.85 & +0.401 & 85.3\% \\
+        \textbf{Qwen3-8B} & 0.402 & \textbf{0.825} & N/A & \textbf{+0.423} & N/A \\
+        \textbf{Qwen2-7B} & 0.380 & 0.781 & \textbf{0.85} & +0.401 & \textbf{85.3\%} \\
         \textbf{Llama-3-8B} & 0.341 & 0.752 & 0.83 & +0.411 & 84.1\% \\
         \textbf{Mistral-7B} & 0.347 & 0.684 & 0.81 & +0.337 & 72.8\% \\
         \textbf{Gemma-7B} & 0.369 & 0.666 & 0.75 & +0.297 & 78.0\% \\
-        \textbf{Phi-3-Mini} & 0.268 & 0.389 & 0.67 & +0.121 & 30.1\% \\
+        \textbf{Phi-3-Mini} & 0.268 & 0.389 & 0.67 & +0.121 & \textbf{30.1\%} \\
         \bottomrule
     \end{tabular}
     \vspace{0.1cm}
@@ -534,7 +534,7 @@ The weighted F1-based benchmark reveals that for high-capacity models like Qwen2
         \multirow{2}{*}{\textbf{Model}} & \textbf{Intrinsic} & \textbf{In-Context} & \textbf{Specialized} & \textbf{Absolute} & \textbf{Recovery} \\
         & (Zero-Shot) & (DPO, $K=3$) & (NuNER Zero) & \textbf{Gain (ICL)} & \textbf{Rate (\%)} \\
         \midrule
-        \textbf{Qwen3-8B} & 0.30 & 0.53 & 0.61 & +0.23 & 74.2\% \\
+        \textbf{Qwen3-8B} & 0.30 & 0.53 & 0.61 & +0.23 & \textbf{74.2\%} \\
         \textbf{Llama-3-8B} & 0.29 & 0.48 & 0.61 & +0.19 & 59.4\% \\
         \textbf{Phi-3-Mini} & 0.20 & 0.26 & 0.61 & +0.06 & 14.6\% \\
         \bottomrule
@@ -544,9 +544,9 @@ The weighted F1-based benchmark reveals that for high-capacity models like Qwen2
 Evaluating the NER task through the same lens, we observe respectable but lower recovery rates. Qwen3-8B again leads with a \textbf{74.2\%} recovery rate, demonstrating its strong adaptability. However, Llama-3-8B (59.4\%) and particularly Phi-3-Mini (14.6\%) struggle to bridge the gap to the specialized NuNER Zero model using only few-shot examples. This confirms that while reasoning tasks are highly amenable to ICL, specialized structural tasks may still necessitate dedicated model architectures or fine-tuning, especially for smaller models.
 
 \section{Conclusion}
-This study systematically investigated the "Few-Shot Dilemma" in Small Language Models, challenging the prevailing notion that simply increasing context volume guarantees better performance. Through our targeted experiments on Competitive Math classification \textbf{and Named Entity Recognition (NER)}, we established critical findings regarding the deployment of SLMs in resource-constrained environments.
+This study systematically investigated the "Few-Shot Dilemma" in Small Language Models, challenging the prevailing notion that simply increasing context volume guarantees better performance. Through our targeted experiments on the \textbf{MATH dataset via and classification} and \textbf{Named Entity Recognition (NER) on Few-NERD}, we established critical findings regarding the deployment of SLMs in resource-constrained environments.
 
-First, we demonstrated that \textbf{quality outweighs quantity}. Naive random selection provided negligible benefits over zero-shot baselines (F1 improvement of only +0.01), whereas our proposed DPO-Hybrid selector, which balances semantic similarity with label correctness, achieved substantial F1-weighted score improvements for the classification task (up to +0.42 for Qwen3-8B). This confirms that for SLMs, the \textit{relevance} of the context is a stronger predictor of success than the \textit{volume} of the context.
+First, we demonstrated that \textbf{quality outweighs quantity}. Naive random selection provided negligible benefits over zero-shot baselines (F1 improvement of only +0.01), whereas our proposed DPO-Hybrid selector, which balances semantic similarity with label correctness, achieved substantial F1-weighted score improvements for the classification task (up to \textbf{+0.42 for Qwen3-8B}). This confirms that for SLMs, the \textit{relevance} of the context is a stronger predictor of success than the \textit{volume} of the context.
 
 Second, we identified a \textbf{divergence in architectural needs}. We observed that "Reasoning Models" (like Qwen3) exhibit an early F1-weighted score peak at $K=3$ (0.825) and degrade rapidly with more examples (dropping to 0.64 at $K=25$), effectively suffering from "over-prompting" due to interference with their internal chain-of-thought processes. In contrast, "Heuristic Models" (like Llama-3) treat few-shot examples as statistical data points, maintaining stable F1 scores up to $K=20$. This suggests that prompt engineering strategies must be tailored not just to the task, but to the specific cognitive architecture of the model.
 
