@@ -1,107 +1,84 @@
-# Few-Shot Learning Optimization: Finding the Optimal Prompt Strategy
+# The Few-shot Dilemma: Over-prompting Large Language Models in Resource-Constrained Environments
+
+## 👥 Authors
+* Amine Mike El Maalouf
+* Cédric Damais
+* Yacine Benihaddadene
+* Léon Ayral
+
+---
 
 ## 📌 Overview
 
-This project investigates how the number and type of few-shot examples influence the performance of small language models on classification tasks. We systematically compare different example selection strategies across multiple shot counts to identify the optimal balance between performance, annotation cost, and inference efficiency.
+Large Language Models (LLMs) have revolutionized NLP through In-Context Learning (ICL). However, a common misconception is "the more examples, the better." This project investigates the **"Few-shot Dilemma"** specifically within **Small Language Models (SLMs)** (e.g., Llama 3.2, Phi-3, Qwen).
 
-Our work is inspired by the paper **"The Few-shot Dilemma: Over-prompting Large Language Models"** ([arXiv:2509.13196](https://arxiv.org/pdf/2509.13196)), which highlights the trade-offs in few-shot prompting for large language models.
+Unlike massive models, SLMs are constrained by smaller context windows and are more susceptible to attention drift. We systematically explore how **example selection strategies** (Random, Semantic, DPO-Hybrid) and **shot count** ($K$) affect performance.
 
----
+Our goal: **Maximize performance while minimizing context usage and latency.**
 
-## 🎯 Motivation
+  **Research paper**: [Read the full paper here](reports/paper_final.pdf)
 
-Few-shot prompting enables language models to perform tasks with minimal training examples. However, the relationship between the number of examples and model performance is not straightforward. Adding more examples can improve accuracy, but it also increases computational costs and may lead to diminishing returns or even performance degradation.
+## 🔍 Key Findings
 
-This project explores the **few-shot dilemma** for smaller language models (1B–3B parameters) and seeks to answer:
+### 1. Quality > Quantity
+Naive random selection provides negligible benefits over zero-shot baselines. Our proposed **DPO-Hybrid selector**, which balances semantic similarity with label correctness, achieves substantial improvements.
 
-- How does the number of examples (0, 1, 3, 5, 10, 20) affect classification performance?
-- Which example selection strategy (random, semantic similarity, TF-IDF) works best?
-- How do these effects vary across different model sizes and tasks?
+![DPO vs Semantic](reports/final_report/assets/f1_weighted_semantic_vs_dpo.png)
 
----
+### 2. The "Reasoning" vs "Heuristic" Split
+*   **Reasoning Models (e.g., Qwen3-8B)**: Benefit significantly from DPO selection but suffer from "over-prompting" at high $K$. They peak early ($K=3$).
+*   **Heuristic Models (e.g., Llama-3-8B)**: Treat examples as statistical data points and scale better with more examples ($K=20$), but rely heavily on surface-level keyword matching.
 
-## Requirements
+### 3. Context Collapse
+Smaller models like **Phi-3-Mini** (3.8B) suffer catastrophic performance degradation when the context is overloaded, emphasizing the need for concise, high-quality prompts.
 
-- Ollama
+![Scaling Analysis](reports/final_report/assets/phase5_scaling_scatter.png)
+
+### 4. The Efficiency Frontier
+For reasoning tasks, an optimized selection of just **3 examples** ($K=3$) can recover over **80%** of the performance gap between zero-shot and full supervised fine-tuning (SFT).
 
 ## 🧪 Methodology
 
-### Models
-
-We evaluate the following small language models:
-
-- **TinyLlama** (1.1B parameters)
-- **Llama 3.2** (1B and 3B variants)
-- **Phi-3-mini** (3.8B parameters)
+### Evaluated Models
+*   **Qwen3** (8B) & **Qwen2** (7B)
+*   **Llama-3** (8B)
+*   **Mistral** (7B)
+*   **Gemma** (7B)
+*   **Phi-3-Mini** (3.8B)
 
 ### Tasks
-
-We focus on classification tasks, including:
-
-- **Sentiment Analysis**: Classifying text as positive, negative, or neutral.
-- **Named Entity Recognition (NER)**: Identifying and categorizing entities in text.
-- **Intent Classification**: Determining user intent from conversational input.
+1.  **Mathematical Reasoning**: `MATH` dataset (7-way classification).
+2.  **Named Entity Recognition**: `Few-NERD` dataset (Entity extraction).
 
 ### Selection Strategies
+*   **Random**: Naive baseline.
+*   **Lexical**: BM25 keyword matching.
+*   **Semantic**: Bi-Encoder embeddings (Cosine Similarity).
+*   **DPO (Hybrid)**: A custom selector trained using **Direct Preference Optimization** to distinguish between *semantically similar* and *label-correct* examples.
 
-We compare three methods for selecting few-shot examples:
+![DPO Creation](reports/final_report/assets/DPO-Dataset-Creation.png)
 
-1. **Random Selection**: Examples chosen uniformly at random.
-2. **Semantic Similarity**: Examples selected based on cosine similarity to the input query (using sentence embeddings).
-3. **TF-IDF Similarity**: Examples selected based on TF-IDF vector similarity to the input.
+## 📊 Global Benchmark (MATH Task)
 
-### Baselines
+| Model | Zero-Shot (Intrinsic) | In-Context (DPO, K=3) | SFT Ceiling (Supervised) | Recovery Rate |
+| :--- | :---: | :---: | :---: | :---: |
+| **Qwen2-7B** | 0.380 | 0.781 | 0.85 | **85.3%** |
+| **Llama-3-8B** | 0.341 | 0.752 | 0.83 | 84.1% |
+| **Mistral-7B** | 0.347 | 0.684 | 0.81 | 72.8% |
+| **Phi-3-Mini** | 0.268 | 0.389 | 0.67 | 30.1% |
 
-To contextualize our findings, we include:
+## 🚀 Usage
 
-- **Zero-shot performance**: Models evaluated without any examples.
-- **Supervised fine-tuned encoder**: A baseline using a fine-tuned BERT-style encoder for classification.
-
----
-
-## 📊 Evaluation
-
-We measure performance using standard classification metrics:
-
-- **Accuracy**
-- **F1-score** (macro-averaged)
-- **Inference time** (to quantify computational cost)
-
-Each configuration is evaluated across multiple runs to ensure statistical reliability. Results are aggregated to map the performance-cost trade-off and identify the optimal prompting strategy for each model and task.
-
----
-
-## 🚀 Expected Contributions
-
-This project aims to:
-
-1. **Quantify the few-shot dilemma** for small language models across different tasks and shot counts.
-2. **Compare example selection strategies** to determine which approach maximizes accuracy with minimal examples.
-3. **Provide practical recommendations** for researchers and practitioners on effective few-shot prompting strategies.
-4. **Establish performance baselines** using zero-shot and fine-tuned supervised models for comparison.
-
----
+### Requirements
+*   Ollama
+*   Python 3.10+
+*   `uv` (for dependency management)
 
 ## 📚 References
 
-- **The Few-shot Dilemma: Over-prompting Large Language Models**  
-  [https://arxiv.org/pdf/2509.13196](https://arxiv.org/pdf/2509.13196)
-
----
-
-## 👥 Authors
-
-* Cédric Damais
-* Léon Ayral
-* Amine Mike El Maalouf
-* Yacine Benihaddadene
-
-
----
+*   **Original Paper**: [Tang et al., 2025] "The Few-shot Dilemma: Over-prompting Large Language Models" ([arXiv:2509.13196](https://arxiv.org/pdf/2509.13196))
+*   **Project Report**: [Read the full report here](reports/final_report/main.pdf)
 
 ## 📄 License
 
 This project is developed as part of the Advanced NLP course in the SCIA Major at EPITA - École pour l'informatique et les techniques avancées.
-It is provided for educational and research purposes.
-
-
