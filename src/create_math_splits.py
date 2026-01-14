@@ -2,39 +2,67 @@ import pandas as pd
 import os
 import glob
 import numpy as np
+from datasets import load_dataset
 
 def create_splits():
     # Define paths
     base_dir = "datasets/competition_math/data"
-    # Find the original parquet file
+    os.makedirs(base_dir, exist_ok=True)
+
+    # Paths for output
+    train_path = os.path.join(base_dir, "train.parquet")
+    test_path = os.path.join(base_dir, "test.parquet")
+
+    # Check if they already exist
+    if os.path.exists(train_path) and os.path.exists(test_path):
+        print(f"Splits already exist at {base_dir}. Skipping generation.")
+        return
+
+    print("Checking for local parquet files...")
     search_path = os.path.join(base_dir, "*.parquet")
     files = glob.glob(search_path)
-
-    # Filter out already created train/test files to avoid re-splitting splits
     original_files = [f for f in files if "train.parquet" not in f and "test.parquet" not in f]
 
-    if not original_files:
-        print("No original dataset file found or splits already exist (and original removed?).")
-        # Check if train/test exist
-        if os.path.exists(os.path.join(base_dir, "train.parquet")) and os.path.exists(os.path.join(base_dir, "test.parquet")):
-            print("train.parquet and test.parquet already exist. Skipping generation.")
+    df = None
+
+    if original_files:
+        print(f"Found local files: {original_files}. Loading...")
+        dfs = [pd.read_parquet(f) for f in original_files]
+        df = pd.concat(dfs, ignore_index=True)
+    else:
+        print("No local files found. Downloading 'hendrycks/competition_math' from Hugging Face...")
+        try:
+            # Download both splits
+            dataset = load_dataset("hendrycks/competition_math", trust_remote_code=True)
+
+            # Convert to pandas
+            train_df_hf = dataset['train'].to_pandas()
+            test_df_hf = dataset['test'].to_pandas()
+
+            # Combine them to perform our own 10% split as per report claims
+            # (Or we could respect the official split, but the report says 10% held-out)
+            # Let's merge and re-split to be consistent with the "10% of corpus" claim.
+            print(f"Downloaded HF Data: {len(train_df_hf)} train, {len(test_df_hf)} test.")
+            df = pd.concat([train_df_hf, test_df_hf], ignore_index=True)
+
+        except Exception as e:
+            print(f"Failed to download dataset: {e}")
             return
-        else:
-            print(f"Error: Could not find original parequet file in {base_dir}")
-            return
 
-    # Assuming there's one main file or we concat them
-    print(f"Loading data from: {original_files}")
-    dfs = [pd.read_parquet(f) for f in original_files]
-    df = pd.concat(dfs, ignore_index=True)
+    if df is None or len(df) == 0:
+        print("Error: DataFrame is empty.")
+        return
 
-    print(f"Total examples: {len(df)}")
+    print(f"Total examples available: {len(df)}")
 
-    # Check if 'problem' and 'type'/'category' exist
-    # (Based on previous conversation, keys might vary, but unsloth loader used 'problem', 'type')
+    # Ensure required columns exist
+    # HF dataset has 'problem', 'level', 'type', 'solution'
+    if 'type' not in df.columns:
+        print("Warning: 'type' column missing. Checking for 'category'...")
+        if 'category' in df.columns:
+            df.rename(columns={'category': 'type'}, inplace=True)
 
     # Simple random split (10% test)
-    # We use a fixed seed for reproducibility
     validation_split = 0.1
 
     # Shuffle indices
@@ -48,17 +76,14 @@ def create_splits():
     train_df = df.iloc[train_indices]
     test_df = df.iloc[test_indices]
 
-    print(f"Train set size: {len(train_df)}")
-    print(f"Test set size: {len(test_df)}")
+    print(f"Generated Train set size: {len(train_df)}")
+    print(f"Generated Test set size: {len(test_df)}")
 
     # Save
-    train_path = os.path.join(base_dir, "train.parquet")
-    test_path = os.path.join(base_dir, "test.parquet")
-
     train_df.to_parquet(train_path)
     test_df.to_parquet(test_path)
 
-    print(f"Saved to {train_path} and {test_path}")
+    print(f"Successfully saved splits to:\n  - {train_path}\n  - {test_path}")
 
 if __name__ == "__main__":
     create_splits()
