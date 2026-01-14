@@ -23,9 +23,9 @@ from compute_metrics import MetricsPipeline
 
 # Configuration
 MODEL_NAME = "llama3:8b"
-DATASET_PATH = "../datasets/competition_math/data/test.parquet"
-TRAIN_DATASET_PATH = "../datasets/competition_math/data/train.parquet"
-DPO_MODEL_PATH = "../dpo_selector_model"
+DATASET_PATH = "datasets/competition_math/data/test.parquet"
+TRAIN_DATASET_PATH = "datasets/competition_math/data/train.parquet"
+DPO_MODEL_PATH = "dpo_selector_model"
 STRATEGIES = ["random", "semantic", "lexical", "cross_encoder", "dpo"]
 K_SHOTS = 3
 SAMPLE_SIZE = 100

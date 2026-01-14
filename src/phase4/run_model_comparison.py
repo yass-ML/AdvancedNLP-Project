@@ -56,9 +56,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Model Comparison Experiment")
     parser.add_argument("--sample_size", type=int, default=100, help="Number of samples per evaluation")
     parser.add_argument("--k", type=int, default=3, help="Number of shots")
-    parser.add_argument("--dataset", type=str, default="../datasets/competition_math/data/test.parquet", help="Path to Evaluation Data (Test)")
-    parser.add_argument("--train_dataset", type=str, default="../datasets/competition_math/data/train.parquet", help="Path to Selection Data (Train)")
-    parser.add_argument("--dpo_path", type=str, default="../dpo_selector_model")
+    parser.add_argument("--dataset", type=str, default="datasets/competition_math/data/test.parquet", help="Path to Evaluation Data (Test)")
+    parser.add_argument("--train_dataset", type=str, default="datasets/competition_math/data/train.parquet", help="Path to Selection Data (Train)")
+    parser.add_argument("--dpo_path", type=str, default="dpo_selector_model")
 
     args = parser.parse_args()
 
