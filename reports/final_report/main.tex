@@ -65,7 +65,7 @@ Large Language Models (LLMs) have revolutionized NLP through In-Context Learning
 % ---------------------------------------------------------
 
 \section{Introduction}
-Large Language Models (LLMs) have revolutionized NLP through In-Context Learning (ICL). However, primarily deploying massive models is infeasible for many real-world applications due to privacy, latency, and ressource constraints. This has led to a resurgence of interest in Small Language Models (SLMs).
+Large Language Models (LLMs) have revolutionized NLP through In-Context Learning (ICL). However, primarily deploying massive models is infeasible for many real-world applications due to privacy, latency, and resource constraints. This has led to a resurgence of interest in Small Language Models (SLMs).
 
 A prevailing dominance in prompt engineering is that providing more examples yields better performance. Inspired by the work of Tang et al. \citep{fewshot2025}, we challenge this assumption for SLMs as well: Unlike their larger counterparts, SLMs suffer more acutely from limited context windows and attention drift.
 
@@ -93,7 +93,7 @@ Recent work highlights distinct failure modes in ICL. \citet{lostInTheMiddle2023
 
 \subsection{Experiment Setup}
 
-We conducted 3 experiments. For each one, we studied the impact of a thoroughly isolated variable on the evaluated task's metrics in order to draw valid conclusions.
+We conducted 3 experiments. For each one, we studied the impact of a \textbf{thoroughly isolated variable} on the evaluated task's metrics in order to draw valid conclusions. All experiments were conducted on a single \textbf{NVIDIA RTX 3060 12GB} GPU, a representative consumer-grade hardware setup mirroring the resource-constrained environments targeted by our study.
 
 
 \begin{enumerate}
@@ -196,7 +196,7 @@ The classification logic is as follows:
 The final dataset consists of triplets $(x, y_{chosen}, y_{rejected})$. By training on these pairs, the shot selector learns to distinguish between truly relevant examples and deceptive distractors, ensuring that the selected few-shot examples reinforce the correct reasoning pattern.
 
 
-\section{Experiments I : MATH Classification}
+\section{Experiments I: MATH Classification}
 
 \subsection{Zero-Shot Baseline Comparison}
 To establish a performance baseline, we first evaluated all candidate Small Language Models (SLMs) in a zero-shot setting. In this configuration, models were presented with the math problem and the list of seven categories, with no prior examples provided. This tests the models' intrinsic knowledge and their ability to follow classification instructions without in-context guidance.
@@ -212,7 +212,7 @@ Figure \ref{fig:zero_shot_baseline} illustrates the comparative accuracy of the 
 \subsubsection{Results}
 \begin{table}[htbp]
     \centering
-    \caption{Zero-Shot Classification F1 weighted on Competition Math Dataset}
+    \caption{Zero-Shot Classification on Competition Math Dataset}
     \label{tab:zero_shot_results}
     \begin{tabular}{lcc}
         \toprule
@@ -262,7 +262,7 @@ Table \ref{tab:supervised_results} compares the F1 Weighted score of the zero-sh
     \end{tabular}
     \vspace{0.1cm}
 
-    \small{\textit{*SFT (Gen): Unsloth Generative Fine-tuning, SFT (Discrim): HuggingFace Classification Head. N/A indicate no Fine-Tuning. Qwen3:8b is not included as it is not available on HuggingFace or Unsloth}}
+    \small{\textit{*SFT (Gen): Unsloth Generative Fine-tuning, SFT (Discrim): HuggingFace Classification Head. N/A: no Fine-Tuning. Qwen3:8b not included as it was not available on HuggingFace or Unsloth at the time of the experiment.}}
 \end{table}
 
 \subsubsection{Quantifying the Adaptation Headroom}
@@ -403,7 +403,7 @@ Three distinct behaviors emerged from the data:
 \textbf{Optimal Configuration:} Based on these findings, we identified $k=3$ as the global optimal setting. It maximizes performance for the high-performing Reasoning models (Qwen3) while remaining within the safe effective context window for smaller models (Phi-3), all while keeping inference latency low.
 
 \section{Experiments II: Few-NERD Named Entity Recognition}
-To validate the generalizability of our findings, we extended the evaluation to the Named Entity Recognition (NER) task using the \texttt{Few-NERD} dataset. We benchmarked three SLMs: \textbf{Llama-3-8B}, \textbf{Qwen3-8B}, and \textbf{Phi-3-Mini}..
+To validate the generalizability of our findings, we extended the evaluation to the Named Entity Recognition (NER) task using the \texttt{Few-NERD} dataset. We benchmarked three SLMs: \textbf{Llama-3-8B}, \textbf{Qwen3-8B}, and \textbf{Phi-3-Mini}.
 
 \subsection{Zero-Shot Baseline Comparison}
 We first established the intrinsic capabilities of the SLMs in a zero-shot setting and compared them against \textbf{NuNER Zero}, a specialized state-of-the-art model for entity recognition.
