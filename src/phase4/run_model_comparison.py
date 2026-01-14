@@ -10,19 +10,19 @@ from benchmark_models import benchmark_models
 def run_comparison(sample_size, k_shots, dataset_path, dpo_path):
     MODELS = ['llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini']
     STRATEGIES = ['semantic']
-    
+
     all_results = []
-    
+
     print(f"Starting Model Comparison Experiment")
     print(f"Models: {MODELS}")
     print(f"Strategies: {STRATEGIES}")
     print(f"Sample Size: {sample_size} | K: {k_shots}")
-    
+
     for strategy in STRATEGIES:
         print(f"\n{'#'*60}")
         print(f"Running for Strategy: {strategy.upper()}")
         print(f"{'#'*60}")
-        
+
         try:
             results = benchmark_models(
                 models=MODELS,
@@ -31,21 +31,21 @@ def run_comparison(sample_size, k_shots, dataset_path, dpo_path):
                 selector_strategy=strategy,
                 k_shots=k_shots,
                 dpo_path=dpo_path,
-                output_dir="model-experiment-result"
+                output_dir="experiment_results/classification/4_model-experiment-results"
             )
             all_results.extend(results)
         except Exception as e:
             print(f"Error running strategy {strategy}: {e}")
-            
-    output_dir = "model-experiment-result"
+
+    output_dir = "experiment_results/classification/4_model-experiment-results"
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, "model_comparison_results.yaml")
-    
+
     with open(output_file, 'w') as f:
         yaml.dump(all_results, f, sort_keys=False)
-        
+
     print(f"\n--> All experiments completed. Aggregated results saved to {output_file}")
-    
+
     df = pd.DataFrame(all_results)
     if not df.empty:
         print("\nAggregated Summary:")
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     parser.add_argument("--k", type=int, default=3, help="Number of shots")
     parser.add_argument("--dataset", type=str, default="../datasets/competition_math/data/train-00000-of-00001-7320a6f3aba8ebd2.parquet")
     parser.add_argument("--dpo_path", type=str, default="../dpo_selector_model")
-    
+
     args = parser.parse_args()
-    
+
     run_comparison(args.sample_size, args.k, args.dataset, args.dpo_path)

@@ -145,7 +145,7 @@ def main():
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="fine_tunings/classification_head",
+        default="experiment_results/classification/0_supervised_baselines_results/classification_head",
         help="Base output directory",
     )
 
@@ -158,7 +158,7 @@ def main():
 
     args = parser.parse_args()
 
-    use_lora = True 
+    use_lora = True
     if args.no_lora:
         use_lora = False
     elif args.use_lora:

@@ -7,8 +7,8 @@ import yaml
 
 # 1. Load Data from YAML
 def load_data():
-    yaml_path = os.path.join(os.path.dirname(__file__), "../../model-experiment-result/phase5_scaling_results.yaml")
-    
+    yaml_path = os.path.join(os.path.dirname(__file__), "../../experiment_results/classification/5_K_scaling_experiment_results/Full_phase5_scaling_results.yaml")
+
     if not os.path.exists(yaml_path):
         print(f"Error: Results file not found at {yaml_path}")
         return []
@@ -41,13 +41,13 @@ strategy_map = {
 for entry in raw_data:
     if entry.get('Status') != 'Success':
         continue
-        
+
     m_name = entry.get('Model', 'Unknown')
     clean_name = model_name_map.get(m_name, m_name)
-    
+
     strat = entry.get('Strategy', 'Unknown')
     clean_strat = strategy_map.get(strat, strat.capitalize())
-    
+
     data.append({
         'Model': clean_name,
         'Strategy': clean_strat,
@@ -75,27 +75,27 @@ colors = {
     'Qwen2 7B': '#9467bd',  # Violet
     'Qwen3 8B': '#8c564b'   # Marron
 }
-markers = {'Semantic': 's', 'DPO': 'o'} 
+markers = {'Semantic': 's', 'DPO': 'o'}
 
 llama_df = df[df['Model'] == 'Llama 3'].sort_values('K')
 if not llama_df.empty:
-    plt.plot(llama_df['Latency'], llama_df['Accuracy'], 
+    plt.plot(llama_df['Latency'], llama_df['Accuracy'],
              color=colors.get('Llama 3', 'blue'), linestyle='--', linewidth=2, alpha=0.5, zorder=1, label='Llama 3 Scaling')
 
     for _, row in llama_df.iterrows():
-        plt.text(row['Latency'], row['Accuracy'] + 0.01, f"K={row['K']}", 
+        plt.text(row['Latency'], row['Accuracy'] + 0.01, f"K={row['K']}",
                  color=colors.get('Llama 3', 'blue'), fontsize=9, ha='center', fontweight='bold')
 
 for _, row in df.iterrows():
     c = colors.get(row['Model'], 'gray')
     m = markers.get(row['Strategy'], 'o')
-    
-    plt.scatter(row['Latency'], row['Accuracy'], 
+
+    plt.scatter(row['Latency'], row['Accuracy'],
                 color=c, marker=m, s=150, edgecolors='white', linewidth=1.5, zorder=3, alpha=0.9)
 
     if row['Model'] != 'Llama 3':
         label_text = f"{row['Model']}\n({row['Strategy']})"
-        
+
         xytext = (0, -25) # Par défaut: en dessous
         if 'Qwen' in row['Model']:
             xytext = (-30, 0) if row['Strategy'] == 'Semantic' else (30, 0)
@@ -103,13 +103,13 @@ for _, row in df.iterrows():
             xytext = (0, -20)
         elif 'Mistral' in row['Model'] and row['Strategy'] == 'Semantic':
             xytext = (0, 15) # Au dessus
-        
+
         plt.annotate(label_text, (row['Latency'], row['Accuracy']),
                      xytext=xytext, textcoords='offset points', ha='center', fontsize=8, alpha=0.8,
                      bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="none", alpha=0.6))
 
 plt.xscale('log')
-plt.gca().xaxis.set_major_formatter(ScalarFormatter()) 
+plt.gca().xaxis.set_major_formatter(ScalarFormatter())
 plt.grid(True, which="both", ls="-", alpha=0.15)
 
 plt.xlabel('Average Latency (seconds) [Log Scale]', fontsize=12, fontweight='bold')

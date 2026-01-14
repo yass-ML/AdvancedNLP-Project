@@ -155,18 +155,22 @@ def evaluate_single_model(model_path, dataset_override=None):
             results[f"{class_name}_support"] = report_dict[class_name]["support"]
 
     # 3. Save to CSV
-    csv_file = "fine_tunings/experiments.csv"
-    df = pd.DataFrame([results])
+    csv_file = "experiment_results/classification/0_supervised_baselines_results/experiments.csv"
 
-    if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
-        df.to_csv(csv_file, mode='a', header=False, index=False)
-    else:
-        df.to_csv(csv_file, mode='w', header=True, index=False)
+    # Check if CSV exists, if not create it with headers
+    if not os.path.exists(csv_file):
+        os.makedirs(os.path.dirname(csv_file) or '.', exist_ok=True)
+        with open(csv_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(["timestamp", "model_path", "model_name", "run_name", "dataset", "test_size", "accuracy", "precision_weighted", "recall_weighted", "f1_weighted", "tokens_per_sec", "num_epochs", "batch_size", "learning_rate", "lora_rank", "lora_alpha"] + [f"{c}_precision" for c in valid_classes] + [f"{c}_recall" for c in valid_classes] + [f"{c}_f1" for c in valid_classes] + [f"{c}_support" for c in valid_classes])
+
+    df = pd.DataFrame([results])
+    df.to_csv(csv_file, mode='a', header=False, index=False)
 
     print(f"Results saved to {csv_file}")
 
     # 4. Save to Central YAML (Requested Format)
-    yaml_path = "fine_tunings/evaluation_results.yaml"
+    yaml_path = "experiment_results/classification/0_supervised_baselines_results/evaluation_results.yaml"
 
     # Calculate average generated tokens
     avg_completion_tokens = np.mean(generated_lengths) if 'generated_lengths' in locals() and generated_lengths else 0
@@ -246,7 +250,7 @@ if __name__ == "__main__":
         evaluate_single_model(args.model_path, args.dataset)
     else:
         # Batch Mode
-        base_dir = "fine_tunings/unsloth"
+        base_dir = "experiment_results/classification/0_supervised_baselines_results/unsloth"
         if not os.path.exists(base_dir):
             print(f"Error: Directory {base_dir} does not exist.")
             exit(1)

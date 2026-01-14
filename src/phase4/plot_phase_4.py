@@ -27,10 +27,10 @@ def plot_accuracy(df, output_dir):
     plt.close()
 
 def plot_f1_scores(df, output_dir):
-    # Melt dataframe to plot both F1 scores side by side if needed, 
+    # Melt dataframe to plot both F1 scores side by side if needed,
     # but separate plots might be cleaner or just one interesting one.
     # Let's do Weighted F1 primarily as it's often more representative for imbalanced if any.
-    
+
     plt.figure(figsize=(10, 6))
     sns.barplot(data=df, x='Model', y='F1 (Weighted)', hue='Strategy')
     plt.title('Weighted F1 Score by Model and Strategy')
@@ -41,7 +41,7 @@ def plot_f1_scores(df, output_dir):
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'f1_weighted_comparison.png'))
     plt.close()
-    
+
     plt.figure(figsize=(10, 6))
     sns.barplot(data=df, x='Model', y='F1 (Macro)', hue='Strategy')
     plt.title('Macro F1 Score by Model and Strategy')
@@ -78,18 +78,18 @@ def plot_tokens(df, output_dir):
 def main():
     # Define paths
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    data_path = os.path.join(base_dir, 'model-experiment-result', 'model_comparison_results.yaml')
-    output_dir = os.path.join(base_dir, 'model-experiment-result', 'plots')
-    
+    data_path = os.path.join(base_dir, 'experiment_results/classification/4_model-experiment-results', 'model_comparison_results.yaml')
+    output_dir = os.path.join(base_dir, 'experiment_results/classification/4_model-experiment-results', 'plots')
+
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
-    
+
     data = load_data(data_path)
     df = create_dataframe(data)
-    
+
     # Set seaborn style
     sns.set_theme(style="whitegrid")
-    
+
     print("Generating plots...")
     plot_accuracy(df, output_dir)
     plot_f1_scores(df, output_dir)

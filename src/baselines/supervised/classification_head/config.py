@@ -81,7 +81,7 @@ def get_config(
     load_in_4bit: bool = False,
     load_in_8bit: bool = False,
     run_name: str = "classification_default",
-    output_dir: str = "fine_tunings/classification_head",
+    output_dir: str = "experiment_results/classification/0_supervised_baselines_results/classification_head",
     subset_limit: Optional[float | int] = None,
     use_focal_loss: bool = False,
     focal_gamma: float = 2.0,

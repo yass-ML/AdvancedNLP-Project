@@ -14,38 +14,38 @@ def resolve_path(provided_path, target_name):
     """
     if os.path.exists(provided_path):
         return provided_path
-    
+
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
     candidates = [
         os.path.join(project_root, target_name),
         os.path.join(project_root, "src", target_name),
         os.path.join(os.getcwd(), target_name)
     ]
-    
+
     for p in candidates:
         if os.path.exists(p):
             return p
-            
+
     return provided_path # Return original to fail with clear error if not found
 
 def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
     MODELS = ['deepseek-r1:8b', 'llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini', 'qwen2:7b', 'qwen3:8b']
     STRATEGY = 'dpo'
-    
+
     dataset_relative = "datasets/competition_math/data/train-00000-of-00001-7320a6f3aba8ebd2.parquet"
     DATASET_PATH = resolve_path(dataset_relative, dataset_relative)
-    
+
     DPO_PATH = resolve_path(dpo_path_arg, "dpo_selector_model")
-    
+
     K_VALUES = [1, 3, 5, 10, 15, 20, 25]
-    
+
     all_results = []
 
     for model in MODELS:
         print(f"\n{'#'*60}")
         print(f"Running for Model: {model}")
         print(f"{'#'*60}")
-    
+
         print(f"Starting Phase 5: K-Shot Scaling Experiment")
         print(f"Model: {model} | Strategy: {STRATEGY}")
         print(f"Search Paths - Dataset: {DATASET_PATH}")
@@ -53,7 +53,7 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
         print(f"K Values: {K_VALUES}")
         print(f"Sample Size: {sample_size}")
         print(f"Batch Size: {batch_size}")
-    
+
         if not os.path.exists(DPO_PATH):
             print(f"CRITICAL ERROR: DPO Model path not found: {DPO_PATH}")
             sys.exit(1)
@@ -62,7 +62,7 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
             print(f"\n{'#'*60}")
             print(f"Running for K = {k}")
             print(f"{'#'*60}")
-        
+
             try:
                 pipeline = MetricsPipeline(
                     model_name=model,
@@ -71,15 +71,15 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
                     k_shots=k,
                     dpo_model_path=DPO_PATH
                 )
-                
+
                 pipeline.load_data()
-                
+
                 print(f"    Processing {sample_size} samples in batches of {batch_size}...")
                 accuracy, f1_w, f1_m, avg_prompt, avg_comp, avg_latency = pipeline.evaluate(
                     sample_size=sample_size,
                     batch_size=batch_size
                 )
-                
+
                 result_entry = {
                     "K": k,
                     "Accuracy": float(accuracy),
@@ -92,10 +92,10 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
                     "Strategy": STRATEGY,
                     "Status": "Success"
                 }
-                
+
                 all_results.append(result_entry)
                 print(f"--> K={k} Result: Accuracy={accuracy:.2%}, Latency={avg_latency:.2f}s")
-                
+
             except Exception as e:
                 print(f"Error running K={k}: {e}")
                 import traceback
@@ -107,15 +107,15 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
                     "Strategy": STRATEGY
                 })
 
-    output_dir = os.path.join(os.path.dirname(__file__), "../../model-experiment-result")
+    output_dir = os.path.join(os.path.dirname(__file__), "../../experiment_results/classification/5_K_scaling_experiment_results")
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, "phase5_scaling_results.yaml")
-    
+
     with open(output_file, 'w') as f:
         yaml.dump(all_results, f, sort_keys=False)
-        
+
     print(f"\n--> Experiment completed. Results saved to {output_file}")
-    
+
     df = pd.DataFrame(all_results)
     if not df.empty:
         print("\nAggregated Summary:")
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("--sample_size", type=int, default=100, help="Number of samples per K")
     parser.add_argument("--dpo_path", type=str, default="dpo_selector_model", help="Path to DPO model")
     parser.add_argument("--batch_size", type=int, default=10, help="Batch size for processing samples")
-    
+
     args = parser.parse_args()
-    
+
     run_scaling_experiment(args.sample_size, args.dpo_path, args.batch_size)

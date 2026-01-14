@@ -21,22 +21,23 @@ def train(config: TrainingConfig):
     train_dataset, val_dataset, test_dataset = get_dataset(config)
 
     # 3. Training Arguments (The Control Panel)
-    checkpoint_dir = f"fine_tunings/unsloth/{config.run_name}/checkpoints"
+    checkpoint_dir = f"experiment_results/classification/0_supervised_baselines_results/unsloth/{config.run_name}/checkpoints"
     args = TrainingArguments(
-        output_dir = checkpoint_dir,
+        output_dir = f"experiment_results/classification/0_supervised_baselines_results/unsloth/{config.run_name}",
         per_device_train_batch_size = config.batch_size,
         per_device_eval_batch_size = 1,  # Reduce to avoid OOM during validation
-        gradient_accumulation_steps = 4, # Simulate larger batches
-        warmup_steps = 5,                # Gently ramp up learning rate
-        # max_steps = 60,                # Short run for testing
+        gradient_accumulation_steps = config.gradient_accumulation_steps, # Simulate larger batches
+        warmup_steps = config.warmup_steps,                # Gently ramp up learning rate
+        max_steps = config.max_steps,                # Short run for testing
         num_train_epochs = config.num_epochs,
         learning_rate = config.learning_rate,
 
         # Memory Optimizations
-        fp16 = not is_bfloat16_supported(),
-        bf16 = is_bfloat16_supported(), # Use BF16 if available
+        fp16 = not torch.cuda.is_bf16_supported(),
+        bf16 = torch.cuda.is_bf16_supported(), # Use BF16 if available
         optim = "adamw_8bit",           # Saves huge memory
-        weight_decay = 0.01,
+        weight_decay = config.weight_decay,
+        lr_scheduler_type="linear",
 
         logging_steps = 1,
 
@@ -50,7 +51,7 @@ def train(config: TrainingConfig):
 
         # TensorBoard logging
         report_to = "tensorboard",
-        logging_dir = f"fine_tunings/unsloth/{config.run_name}/logs",
+        logging_dir = f"experiment_results/classification/0_supervised_baselines_results/unsloth/{config.run_name}/logs",
 
         seed = 3407,
     )
@@ -72,7 +73,7 @@ def train(config: TrainingConfig):
     trainer_stats = trainer.train()
 
     # Create output directory
-    output_dir = f"fine_tunings/unsloth/{config.run_name}"
+    output_dir = f"experiment_results/classification/0_supervised_baselines_results/unsloth/{config.run_name}"
     os.makedirs(output_dir, exist_ok=True)
 
     print(f"Saving BEST model adapters (load_best_model_at_end=True) to {output_dir}...")

@@ -266,7 +266,7 @@ def evaluate_single_model(model_path, dataset_override=None, batch_size=16, outp
 
     print(f"Results appended to {yaml_path}")
 
-    central_yaml_path = Path("fine_tunings/evaluation_results.yaml")
+    central_yaml_path = Path("experiment_results/classification/0_supervised_baselines_results/evaluation_results.yaml")
 
     central_data = []
     if central_yaml_path.exists():
@@ -329,7 +329,7 @@ def main():
     if args.model_path:
         evaluate_single_model(args.model_path, args.dataset, args.batch_size, args.output_file)
     else:
-        base_dir = Path("fine_tunings/classification_head")
+        base_dir = Path("experiment_results/classification/0_supervised_baselines_results/classification_head")
         if not base_dir.exists():
             print(f"Error: Directory {base_dir} does not exist.")
             return

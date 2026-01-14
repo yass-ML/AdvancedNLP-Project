@@ -162,6 +162,7 @@
   Avg_Completion_Tokens: 4.4776
   Avg_Latency_Seconds: 0.29290448723988416
   Task: FineTuned classification
+
 - Model: unsloth/gemma-7b-bnb-4bit
   Dataset: qwedsacf/competition_math
   Finetune: None
@@ -179,15 +180,8 @@
 
 - Model: unsloth/llama-3-8b-bnb-4bit
   Dataset: qwedsacf/competition_math
-  Finetune: generative classification finetune
-  FineTuned_modules:
-  - q_proj
-  - k_proj
-  - v_proj
-  - o_proj
-  - gate_proj
-  - up_proj
-  - down_proj
+  Finetune: None
+  FineTuned_modules: null
   Accuracy: 0.3624
   Precision: 0.47959692616892136
   Recall: 0.3624
@@ -195,19 +189,12 @@
   F1_Macro: 0.06577726422464288
   Avg_Completion_Tokens: 9.3704
   Avg_Latency_Seconds: 0.42656798460455003
-  Task: FineTuned classification
+  Task: Zero-shot generative classification
 
 - Model: unsloth/mistral-7b-v0.3-bnb-4bit
   Dataset: qwedsacf/competition_math
-  Finetune: generative classification finetune
-  FineTuned_modules:
-  - q_proj
-  - k_proj
-  - v_proj
-  - o_proj
-  - gate_proj
-  - up_proj
-  - down_proj
+  Finetune: None
+  FineTuned_modules: null
   Accuracy: 0.0336
   Precision: 0.1147061403508772
   Recall: 0.0336
@@ -215,19 +202,12 @@
   F1_Macro: 0.008804289610116171
   Avg_Completion_Tokens: 9.416
   Avg_Latency_Seconds: 0.420138528307854
-  Task: FineTuned classification
+  Task: Zero-shot generative classification
 
 - Model: unsloth/Phi-3-mini-4k-instruct-bnb-4bit
   Dataset: qwedsacf/competition_math
-  Finetune: generative classification finetune
-  FineTuned_modules:
-  - q_proj
-  - k_proj
-  - v_proj
-  - o_proj
-  - gate_proj
-  - up_proj
-  - down_proj
+  Finetune: None
+  FineTuned_modules: null
   Accuracy: 0.0
   Precision: 0.0
   Recall: 0.0
@@ -235,18 +215,12 @@
   F1_Macro: 0.0
   Avg_Completion_Tokens: 10.0
   Avg_Latency_Seconds: 0.2633146478326177
-  Task: FineTuned classification
+  Task: Zero-shot generative classification
+
 - Model: unsloth/Qwen2-7B-bnb-4bit
   Dataset: qwedsacf/competition_math
-  Finetune: generative classification finetune
-  FineTuned_modules:
-  - q_proj
-  - k_proj
-  - v_proj
-  - o_proj
-  - gate_proj
-  - up_proj
-  - down_proj
+  Finetune: None
+  FineTuned_modules: null
   Accuracy: 0.4448
   Precision: 0.43673079646258967
   Recall: 0.4448
@@ -254,4 +228,4 @@
   F1_Macro: 0.13170072439594727
   Avg_Completion_Tokens: 2.8624
   Avg_Latency_Seconds: 0.2100606484500106
-  Task: FineTuned classification
+  Task: Zero-shot generative classification
