@@ -28,6 +28,8 @@ dependencies = [
     "seaborn>=0.13.2",
     "sentence-transformers>=5.2.0",
     "tensorboard>=2.20.0",
+    "seqeval>=1.2.2",
+    "gliner>=0.2.24",
 ]
 
 [tool.uv.sources]

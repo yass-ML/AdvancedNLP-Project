@@ -1,0 +1,16 @@
+zeroshot_evaluation:
+- avg_latency: 1.8440715265274048
+  f1: 0.29437229437229434
+  k: 0
+  model: llama3:8b
+  strategy: zero_shot
+- avg_latency: 1.185527606010437
+  f1: 0.19534883720930232
+  k: 0
+  model: phi3:mini
+  strategy: zero_shot
+- avg_latency: 1.673764133453369
+  f1: 0.29875518672199175
+  k: 0
+  model: qwen3:8b
+  strategy: zero_shot
