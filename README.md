@@ -25,7 +25,8 @@ Unlike massive models, SLMs are constrained by smaller context windows and are m
 
 Our goal: **Maximize performance while minimizing context usage and latency.**
 
-  **Research paper**: [Read the full paper here](reports/paper_final.pdf)
+  - **Research paper**: [Read the full paper here](reports/paper_final.pdf)
+  - **Google slides**: [Access the slides here](https://docs.google.com/presentation/d/1_0Kz7R0wBjhJ9N0gylgmsejeGNPrcYv7KCZSwyF-4E4/edit?usp=sharing)
 
 ## 🔍 Key Findings
 
