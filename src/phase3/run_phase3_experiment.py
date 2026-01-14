@@ -12,9 +12,13 @@ The tested strategies include:
 """
 
 import os
+import sys
 import yaml
 import argparse
 import subprocess
+
+# Add parent directory to path to find compute_metrics.py
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from compute_metrics import MetricsPipeline
 
 # Configuration
