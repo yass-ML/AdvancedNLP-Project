@@ -123,7 +123,7 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
 
     output_dir = os.path.join(os.path.dirname(__file__), "../../experiment_results/classification/5_K_scaling_experiment_results")
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, "phase5_scaling_results.yaml")
+    output_file = os.path.join(output_dir, "Full_phase5_scaling_results.yaml")
 
     with open(output_file, 'w') as f:
         yaml.dump(all_results, f, sort_keys=False)
