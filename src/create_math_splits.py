@@ -33,17 +33,21 @@ def create_splits():
         print("No local files found. Downloading 'hendrycks/competition_math' from Hugging Face...")
         try:
             # Download both splits
-            dataset = load_dataset("hendrycks/competition_math", trust_remote_code=True)
+            print("Downloading 'qwedsacf/competition_math'...")
+            dataset = load_dataset("qwedsacf/competition_math")
 
-            # Convert to pandas
-            train_df_hf = dataset['train'].to_pandas()
-            test_df_hf = dataset['test'].to_pandas()
+            print(f"Available splits: {list(dataset.keys())}")
 
-            # Combine them to perform our own 10% split as per report claims
-            # (Or we could respect the official split, but the report says 10% held-out)
-            # Let's merge and re-split to be consistent with the "10% of corpus" claim.
-            print(f"Downloaded HF Data: {len(train_df_hf)} train, {len(test_df_hf)} test.")
-            df = pd.concat([train_df_hf, test_df_hf], ignore_index=True)
+            dfs_to_concat = []
+            if 'train' in dataset:
+                dfs_to_concat.append(dataset['train'].to_pandas())
+            if 'test' in dataset:
+                dfs_to_concat.append(dataset['test'].to_pandas())
+
+            if not dfs_to_concat:
+                 raise ValueError("Dataset has no 'train' or 'test' splits.")
+
+            df = pd.concat(dfs_to_concat, ignore_index=True)
 
         except Exception as e:
             print(f"Failed to download dataset: {e}")
