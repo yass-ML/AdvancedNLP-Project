@@ -29,7 +29,7 @@ def resolve_path(provided_path, target_name):
     return provided_path # Return original to fail with clear error if not found
 
 def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
-    MODELS = ['deepseek-r1:8b', 'llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini', 'qwen2:7b', 'qwen3:8b']
+    MODELS = ['qwen3:8b', 'deepseek-r1:8b', 'llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini', 'qwen2:7b']
     STRATEGY = 'dpo'
 
     dataset_relative = "datasets/competition_math/data/test.parquet"

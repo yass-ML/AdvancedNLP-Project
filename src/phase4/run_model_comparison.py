@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from benchmark_models import benchmark_models
 
 def run_comparison(sample_size, k_shots, dataset_path, train_path, dpo_path):
-    MODELS = ['llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini', 'qwen2:7b', 'qwen3:8b']
+    MODELS = ['qwen3:8b', 'llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini', 'qwen2:7b']
     STRATEGIES = ['semantic', 'dpo']
 
     all_results = []
@@ -40,7 +40,7 @@ def run_comparison(sample_size, k_shots, dataset_path, train_path, dpo_path):
 
     output_dir = "experiment_results/classification/4_model-experiment-results"
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, "model_comparison_results.yaml")
+    output_file = os.path.join(output_dir, "Full_model_comparison_results.yaml")
 
     with open(output_file, 'w') as f:
         yaml.dump(all_results, f, sort_keys=False)

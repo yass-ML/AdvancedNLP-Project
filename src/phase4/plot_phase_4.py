@@ -78,7 +78,7 @@ def plot_tokens(df, output_dir):
 def main():
     # Define paths
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    data_path = os.path.join(base_dir, 'experiment_results/classification/4_model-experiment-results', 'model_comparison_results.yaml')
+    data_path = os.path.join(base_dir, 'experiment_results/classification/4_model-experiment-results', 'Full_model_comparison_results.yaml')
     output_dir = os.path.join(base_dir, 'experiment_results/classification/4_model-experiment-results', 'plots')
 
     # Create output directory if it doesn't exist
