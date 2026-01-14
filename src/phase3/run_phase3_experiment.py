@@ -29,7 +29,7 @@ DPO_MODEL_PATH = "dpo_selector_model"
 STRATEGIES = ["random", "semantic", "lexical", "cross_encoder", "dpo"]
 K_SHOTS = 3
 SAMPLE_SIZE = 100
-OUTPUT_DIR = "../few_shot_results"
+OUTPUT_DIR = "experiment_results/classification/3_selector_experiment_results"
 
 def ensure_model_exists(model_name):
     try:
