@@ -196,7 +196,7 @@ The classification logic is as follows:
 The final dataset consists of triplets $(x, y_{chosen}, y_{rejected})$. By training on these pairs, the shot selector learns to distinguish between truly relevant examples and deceptive distractors, ensuring that the selected few-shot examples reinforce the correct reasoning pattern.
 
 
-\section{Experiments}
+\section{Experiments I : MATH Classification}
 
 \subsection{Zero-Shot Baseline Comparison}
 To establish a performance baseline, we first evaluated all candidate Small Language Models (SLMs) in a zero-shot setting. In this configuration, models were presented with the math problem and the list of seven categories, with no prior examples provided. This tests the models' intrinsic knowledge and their ability to follow classification instructions without in-context guidance.
@@ -402,8 +402,92 @@ Three distinct behaviors emerged from the data:
 
 \textbf{Optimal Configuration:} Based on these findings, we identified $k=3$ as the global optimal setting. It maximizes performance for the high-performing Reasoning models (Qwen3) while remaining within the safe effective context window for smaller models (Phi-3), all while keeping inference latency low.
 
-\section{Discussion}
+\section{Experiments II: Few-NERD Named Entity Recognition}
+To validate the generalizability of our findings, we extended the evaluation to the Named Entity Recognition (NER) task using the \texttt{Few-NERD} dataset. We benchmarked three SLMs: \textbf{Llama-3-8B}, \textbf{Qwen3-8B}, and \textbf{Phi-3-Mini}..
 
+\subsection{Zero-Shot Baseline Comparison}
+We first established the intrinsic capabilities of the SLMs in a zero-shot setting and compared them against \textbf{NuNER Zero}, a specialized state-of-the-art model for entity recognition.
+
+\subsubsection{Results}
+\begin{table}[htbp]
+    \centering
+    \caption{Zero-Shot NER Performance (F1 Score) compared to NuNER Zero baseline.}
+    \label{tab:ner_zero_shot}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Model} & \textbf{F1 Score} & \textbf{Gap to SOTA} \\
+        \midrule
+        NuNER Zero (Baseline) & \textbf{0.61} & - \\
+        \midrule
+        Llama-3-8B & 0.29 & -0.32 \\
+        Qwen3-8B & 0.30 & -0.31 \\
+        Phi-3-Mini & 0.20 & -0.41 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Analysis of Zero-Shot Performance}
+The results reveal a substantial performance gap between general-purpose SLMs and the specialized NuNER Zero model. All tested SLMs achieved approximately half the F1 score of the state-of-the-art baseline, indicating that entity recognition requires more than general instruction-following capabilities. Notably, Qwen3-8B and Llama-3-8B performed comparably (0.30 and 0.29 respectively), while Phi-3-Mini lagged behind with 0.20 F1, consistent with its smaller parameter count.
+
+\subsection{Selector Experiment (NER)}
+We evaluated the impact of example selection strategies on the entity extraction accuracy of Llama-3-8B. Given the structural nature of NER, we hypothesized that semantic relevance plays a crucial role in preventing entity type hallucinations.
+
+\subsubsection{Results}
+\begin{table}[htbp]
+    \centering
+    \caption{Impact of Selection Strategy on NER F1 Score (Llama-3-8B, $k=3$)}
+    \label{tab:ner_selector_results}
+    \begin{tabular}{lccc}
+        \toprule
+        \textbf{Strategy} & \textbf{F1 Score} & \textbf{Avg Latency (s)} & \textbf{Gain vs Random} \\
+        \midrule
+        Random & 0.31 & 1.79 & - \\
+        Lexical (BM25) & 0.39 & 2.03 & +25.8\% \\
+        Semantic (Bi-Encoder) & 0.45 & 1.94 & +45.1\% \\
+        \textbf{DPO (Hybrid)} & \textbf{0.46} & 2.00 & \textbf{+48.4\%} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Analysis of Selector Performance}
+The NER selector experiment reveals patterns both consistent with and divergent from the classification task:
+\begin{itemize}
+    \item \textbf{Random Selection Inefficacy:} Similar to classification, random shots provided minimal improvement over the zero-shot baseline (0.31 vs. 0.29), confirming that irrelevant examples add noise rather than guidance.
+    \item \textbf{Semantic Retrieval Dominance:} The Semantic strategy achieved a substantial +45.1\% gain, demonstrating the importance of domain-matched examples for entity boundary detection.
+    \item \textbf{Marginal DPO Improvement:} Unlike the classification task, the DPO selector provided only a marginal improvement over Semantic retrieval (+1\%), suggesting that for structural tasks, simple embedding similarity already captures the most relevant retrieval signal.
+\end{itemize}
+
+\subsection{Impact of Shot Count (\texorpdfstring{$k$}{k}) on NER Performance}
+We analyzed how increasing context volume affects the SLMs' ability to compete with the specialized NuNER Zero baseline. Figure \ref{fig:ner_scaling} illustrates the F1 trajectories.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{assets/ner_scaling_plot.png}
+    \caption{NER F1 Score vs. Shot Count ($k$). Qwen3-8B demonstrates the highest ceiling (0.58 at $k=20$) but still lags behind the specialized NuNER Zero baseline.}
+    \label{fig:ner_scaling}
+\end{figure}
+\subsubsection{Analysis of Context Scaling}
+The NER scaling experiment reveals three key observations:
+\begin{enumerate}
+    \item \textbf{Qwen3-8B Leadership:} The reasoning model achieved the highest F1 score (0.58 at $k=20$), benefiting from additional examples unlike its behavior in classification where it peaked early.
+    \item \textbf{Persistent SOTA Gap:} Even at optimal configurations, all SLMs remained significantly below NuNER Zero (0.61), indicating that specialized pre-training provides advantages that cannot be fully bridged through context optimization.
+    \item \textbf{Phi-3 Context Collapse:} Consistent with classification results, Phi-3-Mini exhibited severe performance degradation at higher $k$ values, confirming the model's limited effective context window.
+\end{enumerate}
+
+\subsection{The "Evaluation Gap" in Structured Tasks}
+The NER results highlight a distinct contrast to the Mathematical Reasoning task. While our DPO strategy successfully recovered 80\% of the supervised performance in reasoning tasks, predicting named entities proved significantly more challenging for general-purpose SLMs.
+
+\begin{itemize}
+    \item \textbf{The Ceiling is Higher:} The state-of-the-art NuNER Zero model ($\approx$ 0.61 F1) remained out of reach for all general-purpose SLMs, with our best performer (Qwen3-8B @ $k=20$) peaking at 0.58 F1. This suggests that for highly structural tasks like NER, generalist instruction tuning cannot fully replace specialized architecture or pre-training.
+
+    \item \textbf{DPO vs. Semantic Saturation:} In the NER selector experiment, the gap between Standard Semantic retrieval (0.45) and DPO (0.46) was marginal (+1\%), unlike the significant gains seen in Math. This indicates that NER relies less on "reasoning" about the example's difficulty and more on simple "domain matching," which standard embeddings already capture effectively.
+
+    \item \textbf{Phi-3 Context Collapse:} Consistent with our Math experiments, Phi-3-Mini suffered a catastrophic performance collapse as $k$ increased, dropping to near-zero F1 at $k=20$. This reinforces the finding that smaller architectures cannot effectively attend to long in-context demonstrations, treating them as noise rather than signal.
+\end{itemize}
+
+These findings suggest that while intelligent few-shot selection is a powerful tool for reasoning tasks, its returns diminish in structural extraction tasks where the model's fundamental architecture (or lack of specialized pre-training) becomes the bottleneck.
+
+\section{Discussion}
 \subsection{Global Benchmark: The Adaptation Efficiency}
 To rigorously assess the utility of our proposed DPO Selection strategy, we consolidate our findings into a global benchmark. Table \ref{tab:global_benchmark} compares the performance of the models across three distinct adaptation stages:
 \begin{enumerate}
@@ -419,14 +503,14 @@ We define \textbf{Recovery Rate} as the percentage of the "SFT Headroom" that is
 
 \begin{table}[htbp]
     \centering
-    \caption{Global Performance Benchmark: Comparing Intrinsic, In-Context, and Supervised Capabilities. \textbf{Recovery Rate} indicates how much of the fine-tuning gap is closed by using just 3 optimized examples.}
+    \caption{Global Performance Benchmark (Mathematical Reasoning): Comparing Intrinsic, In-Context, and Supervised Capabilities. \textbf{Recovery Rate} indicates how much of the fine-tuning gap is closed by using just 3 optimized examples.}
     \label{tab:global_benchmark}
     \begin{tabular}{lccccc}
         \toprule
         \multirow{2}{*}{\textbf{Model}} & \textbf{Intrinsic} & \textbf{In-Context} & \textbf{Supervised} & \textbf{Absolute} & \textbf{Recovery} \\
         & (Zero-Shot) & (DPO, $K=3$) & (Ceiling) & \textbf{Gain (ICL)} & \textbf{Rate (\%)} \\
         \midrule
-        \textbf{Qwen3-8B} & 0.402 & 0.825 & [VAL] & +0.423 & [VAL]\% \\
+        \textbf{Qwen3-8B} & 0.402 & 0.825 & N/A & +0.423 & N/A \\
         \textbf{Qwen2-7B} & 0.380 & 0.781 & 0.85 & +0.401 & 85.3\% \\
         \textbf{Llama-3-8B} & 0.341 & 0.752 & 0.83 & +0.411 & 84.1\% \\
         \textbf{Mistral-7B} & 0.347 & 0.684 & 0.81 & +0.337 & 72.8\% \\
@@ -434,18 +518,39 @@ We define \textbf{Recovery Rate} as the percentage of the "SFT Headroom" that is
         \textbf{Phi-3-Mini} & 0.268 & 0.389 & 0.67 & +0.121 & 30.1\% \\
         \bottomrule
     \end{tabular}
+    \vspace{0.1cm}
+
+    \small{\textit{*N/A: Qwen3-8B could not be fine-tuned as it was not available on Hugging Face at the time of experiment.}}
 \end{table}
 
 The weighted F1-based benchmark reveals that for high-capacity models like Qwen2-7B (85.3\%) and Llama-3-8B (84.1\%), our optimized few-shot strategy recovers over \textbf{80\%} of the performance gains associated with full fine-tuning. Even mid-tier models like Gemma-7B (78.0\%) and Mistral-7B (72.8\%) achieve substantial recovery rates. This suggests that for these architectures, specialized ICL strategies offer a highly efficient alternative to expensive training pipelines. Conversely, smaller models like Phi-3-Mini show a significantly lower recovery rate (30.1\%), indicating that their limitations are structural and require parameter updates to overcome.
 
+\begin{table}[htbp]
+    \centering
+    \caption{Global Performance Benchmark (Named Entity Recognition): Comparing Intrinsic, In-Context, and Supervised Capabilities. \textbf{Recovery Rate} indicates how much of the specialized SOTA gap is closed by using optimized examples ($k=3$).}
+    \label{tab:ner_global_benchmark}
+    \begin{tabular}{lccccc}
+        \toprule
+        \multirow{2}{*}{\textbf{Model}} & \textbf{Intrinsic} & \textbf{In-Context} & \textbf{Specialized} & \textbf{Absolute} & \textbf{Recovery} \\
+        & (Zero-Shot) & (DPO, $K=3$) & (NuNER Zero) & \textbf{Gain (ICL)} & \textbf{Rate (\%)} \\
+        \midrule
+        \textbf{Qwen3-8B} & 0.30 & 0.53 & 0.61 & +0.23 & 74.2\% \\
+        \textbf{Llama-3-8B} & 0.29 & 0.48 & 0.61 & +0.19 & 59.4\% \\
+        \textbf{Phi-3-Mini} & 0.20 & 0.26 & 0.61 & +0.06 & 14.6\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Evaluating the NER task through the same lens, we observe respectable but lower recovery rates. Qwen3-8B again leads with a \textbf{74.2\%} recovery rate, demonstrating its strong adaptability. However, Llama-3-8B (59.4\%) and particularly Phi-3-Mini (14.6\%) struggle to bridge the gap to the specialized NuNER Zero model using only few-shot examples. This confirms that while reasoning tasks are highly amenable to ICL, specialized structural tasks may still necessitate dedicated model architectures or fine-tuning, especially for smaller models.
+
 \section{Conclusion}
-This study systematically investigated the "Few-Shot Dilemma" in Small Language Models, challenging the prevailing notion that simply increasing context volume guarantees better performance. Through our targeted experiments on Competitive Math classification, we established three critical findings regarding the deployment of SLMs in resource-constrained environments.
+This study systematically investigated the "Few-Shot Dilemma" in Small Language Models, challenging the prevailing notion that simply increasing context volume guarantees better performance. Through our targeted experiments on Competitive Math classification \textbf{and Named Entity Recognition (NER)}, we established critical findings regarding the deployment of SLMs in resource-constrained environments.
 
 First, we demonstrated that \textbf{quality outweighs quantity}. Naive random selection provided negligible benefits over zero-shot baselines (F1 improvement of only +0.01), whereas our proposed DPO-Hybrid selector, which balances semantic similarity with label correctness, achieved substantial F1-weighted score improvements (up to +0.42 for Qwen3-8B). This confirms that for SLMs, the \textit{relevance} of the context is a stronger predictor of success than the \textit{volume} of the context.
 
 Second, we identified a \textbf{divergence in architectural needs}. We observed that "Reasoning Models" (like Qwen3) exhibit an early F1-weighted score peak at $K=3$ (0.825) and degrade rapidly with more examples (dropping to 0.64 at $K=25$), effectively suffering from "over-prompting" due to interference with their internal chain-of-thought processes. In contrast, "Heuristic Models" (like Llama-3) treat few-shot examples as statistical data points, maintaining stable F1 scores up to $K=20$. This suggests that prompt engineering strategies must be tailored not just to the task, but to the specific cognitive architecture of the model.
 
-Finally, we quantified the \textbf{Efficiency Frontier}. Our weighted F1-based global benchmark revealed that for capable 7B-parameter models (Qwen2-7B: 85.3\%, Llama-3-8B: 84.1\%), an optimized selection of just $K=3$ examples can recover over \textbf{80\%} of the F1-weighted performance gain typically achieved through expensive supervised fine-tuning. This effectively identifies a "Pareto Optimal" sweet spot: by using a smart, low-latency selector, practitioners can achieve near-supervised F1 scores without the high computational cost of training or the high inference latency of long-context prompting.
+Finally, we quantified the \textbf{Efficiency Frontier} and its limits. Our weighted F1-based global benchmark revealed that for capable 7B-parameter models (Qwen2-7B: 85.3\%, Llama-3-8B: 84.1\%) on reasoning tasks, an optimized selection of just $K=3$ examples can recover over \textbf{80\%} of the F1-weighted performance gain typically achieved through expensive supervised fine-tuning. However, our NER experiments revealed an important boundary. While optimized few-shot learning improved entity extraction capabilities (improving Llama-3 by +48.4\% over weak baselines), generalist SLMs still trailed the specialized NuNER Zero baseline by a significant margin (0.46 vs 0.61 F1). This highlights an "Evaluation Gap" for structured tasks, where the lack of specific architectural priors in generalist models cannot be fully compensated for by context optimization alone.
 
 In conclusion, the "Few-Shot Dilemma" is not an inevitable barrier but a manageable trade-off. By shifting focus from context expansion to context curation, we can unlock the full potential of Small Language Models, making them viable, efficient alternatives to their massive counterparts.
 
