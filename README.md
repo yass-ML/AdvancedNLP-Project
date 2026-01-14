@@ -91,3 +91,76 @@ For reasoning tasks, an optimized selection of just **3 examples** ($K=3$) can r
 ## 📄 License
 
 This project is developed as part of the Advanced NLP course in the SCIA Major at EPITA - École pour l'informatique et les techniques avancées.
+
+## 🔁 Reproduction Steps
+To reproduce all experiments reported in the paper, follow these steps in order.
+
+### 0. Prerequisites
+```bash
+uv sync
+```
+
+### 1. Math Classification Task (Main)
+
+**A. Data Preparation**
+Isolate the test set and training pool.
+```bash
+uv run python src/create_math_splits.py
+```
+*(This generates `datasets/competition_math/data/train.parquet` and `test.parquet`)*
+
+**B. DPO Pipeline (Math)**
+Generate preference pairs and train the math-specific selector.
+```bash
+uv run python src/DPO/dpo_dataset.py \
+    --dataset_path datasets/competition_math/data/train.parquet \
+    --output math_dpo_pairs.jsonl
+
+uv run python src/DPO/train_dpo_selector.py \
+    --dataset_path math_dpo_pairs.jsonl \
+    --output_dir dpo_selector_model
+```
+
+**C. Experiments (Math)**
+Run the three main phases.
+```bash
+# Phase 3: Selector Experiment (Random vs Semantic vs DPO)
+uv run python src/phase3/run_phase3_experiment.py
+
+# Phase 4: Model Comparison (Llama3 vs Phi3 vs Qwen etc)
+uv run python src/phase4/run_model_comparison.py --sample_size 100 --k 3
+
+# Phase 5: K-Shot Scaling (Context Window Analysis)
+uv run python src/phase5/run_scaling_experiment.py --sample_size 100 --batch_size 10
+```
+
+### 2. NER Task (Validation)
+
+**A. Data Preparation**
+Download and convert Few-NERD dataset.
+```bash
+uv run python src/ner/ner_task_data_loader.py
+```
+
+**B. DPO Pipeline (NER)**
+Generate pairs and train the NER-specific selector.
+```bash
+uv run python src/ner/ner_task_dpo_dataset.py --output ner_dpo_pairs.jsonl
+
+uv run python src/ner/ner_task_train_dpo.py \
+    --pairs ner_dpo_pairs.jsonl \
+    --output dpo_selector_model_ner
+```
+
+**C. Experiments (NER)**
+Run baselines and full evaluations.
+```bash
+# Zero-Shot Baselines
+uv run python src/ner/ner_task_run_zeroshot.py
+
+# Main Experiments (Selector & Model Comparison)
+uv run python src/ner/ner_task_run_experiments.py
+
+# Scaling Experiment (K=1 to K=25)
+uv run python src/ner/ner_task_run_scaling_only.py
+```
