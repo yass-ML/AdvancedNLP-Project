@@ -32,8 +32,11 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
     MODELS = ['deepseek-r1:8b', 'llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini', 'qwen2:7b', 'qwen3:8b']
     STRATEGY = 'dpo'
 
-    dataset_relative = "datasets/competition_math/data/train-00000-of-00001-7320a6f3aba8ebd2.parquet"
+    dataset_relative = "datasets/competition_math/data/test.parquet"
     DATASET_PATH = resolve_path(dataset_relative, dataset_relative)
+
+    train_relative = "datasets/competition_math/data/train.parquet"
+    TRAIN_PATH = resolve_path(train_relative, train_relative)
 
     DPO_PATH = resolve_path(dpo_path_arg, "dpo_selector_model")
 
@@ -49,6 +52,7 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
         print(f"Starting Phase 5: K-Shot Scaling Experiment")
         print(f"Model: {model} | Strategy: {STRATEGY}")
         print(f"Search Paths - Dataset: {DATASET_PATH}")
+        print(f"Search Paths - Train Dataset: {TRAIN_PATH}")
         print(f"Search Paths - DPO Model: {DPO_PATH}")
         print(f"K Values: {K_VALUES}")
         print(f"Sample Size: {sample_size}")
@@ -58,22 +62,32 @@ def run_scaling_experiment(sample_size, dpo_path_arg, batch_size=10):
             print(f"CRITICAL ERROR: DPO Model path not found: {DPO_PATH}")
             sys.exit(1)
 
+        # Optimization: Initialize Pipeline ONCE per model
+        try:
+            print(f"Initializing pipeline for {model}...")
+            # Init with k=1 to ensure selector is loaded
+            pipeline = MetricsPipeline(
+                model_name=model,
+                dataset_path=DATASET_PATH,
+                selector_strategy=STRATEGY,
+                k_shots=1,
+                dpo_model_path=DPO_PATH,
+                train_dataset_path=TRAIN_PATH
+            )
+            pipeline.load_data()
+        except Exception as e:
+            print(f"Failed to initialize pipeline for {model}: {e}")
+            continue
+
         for k in K_VALUES:
             print(f"\n{'#'*60}")
             print(f"Running for K = {k}")
             print(f"{'#'*60}")
 
+            # Update K dynamically
+            pipeline.k_shots = k
+
             try:
-                pipeline = MetricsPipeline(
-                    model_name=model,
-                    dataset_path=DATASET_PATH,
-                    selector_strategy=STRATEGY,
-                    k_shots=k,
-                    dpo_model_path=DPO_PATH
-                )
-
-                pipeline.load_data()
-
                 print(f"    Processing {sample_size} samples in batches of {batch_size}...")
                 accuracy, f1_w, f1_m, avg_prompt, avg_comp, avg_latency = pipeline.evaluate(
                     sample_size=sample_size,
