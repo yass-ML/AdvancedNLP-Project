@@ -9,7 +9,7 @@ from benchmark_models import benchmark_models
 
 def run_comparison(sample_size, k_shots, dataset_path, train_path, dpo_path):
     MODELS = ['llama3:8b', 'mistral:7b', 'gemma:7b', 'phi3:mini']
-    STRATEGIES = ['semantic']
+    STRATEGIES = ['semantic', 'dpo']
 
     all_results = []
 
