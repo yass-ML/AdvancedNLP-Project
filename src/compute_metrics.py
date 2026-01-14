@@ -102,19 +102,12 @@ class MetricsPipeline:
         Category:
         """
 
-        # Dynamic max token limit:
-        # Standard models (Llama, Qwen, Phi) get 128 (short) to prevent hallucinations/latency.
-        # Reasoning models (DeepSeek-R1) get 1024 because they MUST output a 'Chain of Thought' <think>...</think> first.
-        # If we cut them at 128, they output incomplete thoughts and no answer -> Accuracy 0.
-        max_tokens = 1024 if ("deepseek" in self.model_name.lower() or "r1" in self.model_name.lower()) else 128
-
         payload = {
             "model": self.model_name,
             "prompt": prompt,
             "stream": False,
             "options": {
-                "temperature": 0.0,
-                "num_predict": max_tokens
+                "temperature": 0.0
             }
         }
 
