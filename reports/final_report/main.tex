@@ -381,7 +381,7 @@ Figure \ref{fig:k_shot_analysis} illustrates the trajectories for the different 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{assets/phase5_scaling_scatter.png}
-    \caption{Accuracy vs. Shot Count ($k$). While standard models (Llama-3, Gemma) scale effectively up to $k=20$, the reasoning-heavy Qwen3-8B peaks early at $k=3$ and degrades rapidly thereafter.}
+    \caption{Weighted F1 vs. Shot Count ($k$). While standard models (Llama-3, Gemma) scale effectively up to $k=20$, the reasoning-heavy Qwen3-8B peaks early at $k=3$ and degrades rapidly thereafter.}
     \label{fig:k_shot_analysis}
 \end{figure}
 
@@ -390,7 +390,7 @@ Three distinct behaviors emerged from the data:
 
 \begin{enumerate}
     \item \textbf{Reasoning Saturation (Qwen3-8B):}
-    The "Thinking Model" exhibited a unique \textbf{early peak} at $k=3$ (Accuracy 0.82), followed by a sharp degradation as $k$ increased (dropping to 0.64 at $k=25$).
+    The "Thinking Model" exhibited a unique \textbf{early peak} at $k=3$ (Weighted F1 0.84), followed by a sharp degradation as $k$ increased (dropping to 0.64 at $k=25$).
     \textit{Hypothesis:} Since Qwen3 generates implicit Chain-of-Thought tokens, providing too many input examples may overcrowd its context window or interfere with its internal reasoning generation process. It performs best with a "minimalist" prompt that establishes the pattern without overwhelming the reasoning engine.
 
     \item \textbf{Scalable Learners (Llama-3, Gemma):}
